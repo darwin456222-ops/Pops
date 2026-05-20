@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>The Pets: Bomber Online</title>
+    <style>
+        :root {
+            --bg: #090a14;
+            --panel: #14162e;
+            --accent: #00d2ff;
+            --danger: #ff4757;
+            --warning: #f1c40f;
+            --border: #3b427a;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: sans-serif; background: var(--bg); color: white; overflow: hidden; height: 100vh; user-select: none; touch-action: none; }
+        
+        /* GİRİŞ VE LOBİ EKRANI */
+        .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; z-index: 10; background: radial-gradient(circle, #1a1c3a, #090a14); overflow-y: auto; }
+        h1 { color: var(--accent); text-shadow: 0 0 10px var(--accent); font-size: 24px; margin-bottom: 15px; text-align: center; font-weight: 900; }
+        
+        .input-group { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        input { width: 100%; height: 42px; background: #202447; border: 2px solid var(--border); border-radius: 10px; color: white; padding: 0 15px; font-size: 14px; outline: none; text-align: center; }
+        input:focus { border-color: var(--accent); }
+        
+        /* KARAKTER SEÇİM KARTLARI GRİDİ */
+        .char-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-width: 320px; margin-bottom: 12px; }
+        .char-card { background: var(--panel); border: 2px solid var(--border); border-radius: 12px; padding: 6px; display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; transition: all 0.2s; }
+        .char-card img { width: 55px; height: 55px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 4px; }
+        .char-card span { font-size: 10px; font-weight: bold; color: #fff; }
+        .char-card.selected { border-color: var(--accent); box-shadow: 0 0 12px rgba(0,210,255,0.4); background: #1b244a; }
+
+        #char-desc { font-size: 11px; color: #aaa; text-align: center; margin-bottom: 12px; line-height: 1.4; background: rgba(0,0,0,0.4); padding: 8px; border-radius: 8px; width: 100%; max-width: 320px; border: 1px solid #222; }
+
+        button { width: 100%; max-width: 320px; height: 46px; background: var(--accent); border: none; border-radius: 10px; color: #000; font-weight: 900; font-size: 15px; cursor: pointer; margin-bottom: 8px; box-shadow: 0 4px 12px rgba(0,210,255,0.3); }
+        button:active { transform: scale(0.98); }
+        
+        /* OYUN EKRANI */
+        #game-screen { display: none; background: #0c0d1f; flex-direction: column; justify-content: space-between; }
+        .top-bar { width: 100%; height: 50px; background: var(--panel); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; border-bottom: 2px solid #22264f; }
+        .room-info { font-size: 12px; font-weight: bold; color: var(--warning); }
+        
+        #arena-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 5px; position: relative; }
+        canvas { background: #111329; border: 3px solid #2d325a; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.6); max-width: 98vw; max-height: 60vh; }
+        
+        /* MOBİL KONTROLLER */
+        .controls { height: 125px; background: var(--panel); border-top: 2px solid #22264f; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; }
+        .dpad { position: relative; width: 110px; height: 110px; }
+        .dbtn { position: absolute; width: 36px; height: 36px; background: #252952; border: 2px solid #41488c; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; }
+        .dbtn:active { background: var(--accent); color: black; }
+        .d-up { top: 0; left: 37px; }
+        .d-down { bottom: 0; left: 37px; }
+        .d-left { top: 37px; left: 0; }
+        .d-right { top: 37px; right: 0; }
+        
+        .action-btns { display: flex; gap: 12px; }
+        .act-btn { width: 55px; height: 55px; border-radius: 50%; border: none; font-size: 20px; display: flex; align-items: center; justify-content: center; color: white; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .act-btn:active { transform: scale(0.92); }
+        .btn-bomb { background: #e74c3c; border: 2px solid #c0392b; }
+        .btn-ability { background: #9b59b6; border: 2px solid #8e44ad; position: relative; }
+        .btn-ability:disabled { background: #34495e; border-color: #2c3e50; opacity: 0.6; }
+
+        #lobby-list { font-size: 13px; color: #fff; margin-top: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; width: 100%; max-width: 320px; border: 1px solid #2d325a; }
+        .lobby-p { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px dashed #333; }
+    </style>
+</head>
+<body>
+
+    <div id="lobby-screen" class="screen">
+        <h1>THE PETS: BOMBER</h1>
+        
+        <div class="input-group">
+            <input type="text" id="username" placeholder="Takma Adın" maxlength="10">
+            <input type="text" id="room-id" placeholder="Oda Kodu (Örn: 5566)" maxlength="6">
+        </div>
+
+        <div class="char-grid" id="char-card-container">
+            </div>
+        
+        <div id="char-desc">Karakter gücü bilgisi burada görünecek.</div>
+        
+        <button id="btn-join" onclick="joinRoom()">ODAYA KATIL / KUR</button>
+        <button id="btn-start" style="display:none; background:var(--warning);" onclick="startGame()">OYUNU BAŞLAT 🚀</button>
+        
+        <div id="lobby-list" style="display:none;">
+            <div style="font-weight:bold; color:var(--accent); margin-bottom:6px;">Odadaki Oyuncular:</div>
+            <div id="players-container"></div>
+        </div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="top-bar">
+            <div class="room-info" id="hud-room-id">ODA: ----</div>
+            <div id="game-status" style="font-size:12px; font-weight:bold; color:#fff;">Savaş Başladı!</div>
+            <button onclick="leaveGame()" style="width:70px; height:32px; font-size:11px; background:#444; color:#fff; margin:0; box-shadow:none;">ÇIK ⬅</button>
+        </div>
+
+        <div id="arena-container">
+            <canvas id="bomber-canvas"></canvas>
+        </div>
+
+        <div class="controls">
+            <div class="dpad">
+                <div class="dbtn d-up" data-dir="up">▲</div>
+                <div class="dbtn d-down" data-dir="down">▼</div>
+                <div class="dbtn d-left" data-dir="left">◀</div>
+                <div class="dbtn d-right" data-dir="right">▶</div>
+            </div>
+            
+            <div class="action-btns">
+                <button class="act-btn btn-ability" id="action-skill" onclick="useSpecialAbility()">🌟</button>
+                <button class="act-btn btn-bomb" onclick="placeBomb()">💣</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        const firebaseConfig = {
+            databaseURL: "https://tomoyunu-5cd2f-default-rtdb.europe-west1.firebasedatabase.app"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const RAW = "https://raw.githubusercontent.com/darwin456222-ops/Darwiizl/main/";
+        
+        // Karakter Ayarları, Fotoğrafları ve Güçleri
+        const PETS_DATA = {
+            squeak: { name: "SQUEAK", img: "squeak.jpg", desc: "5 saniyeliğine %40 daha hızlı koşar!", emoji: "⚡" },
+            tom:     { name: "TOM",     img: "gus.jpg",    desc: "2 saniye patlamalardan hasar almaz (Kalkan)!", emoji: "🛡️" }, // Gus altyapılı Tom kalkanı
+            becca:   { name: "BECCA",   img: "blinky.jpg", desc: "Yanındaki bombaya vurarak ileri fırlatır!", emoji: "👟" }, // Blinky altyapılı Becca tekmesi
+            flip:    { name: "FLIP",    img: "flip.jpg",   desc: "Yere bıraktığı son bombayı ANINDA patlatır!", emoji: "💥" },
+            sugar:   { name: "SUGAR",   img: "sugar.jpg",  desc: "Önündeki kırılabilir kutuyu 1 kare ileri iter!", emoji: "📦" },
+            dot:     { name: "DOT",     img: "dot.jpg",    desc: "Bombası uzaktan kumandalıdır, tuşa basınca patlar!", emoji: "🎮" }
+        };
+
+        let myId = null;
+        let myRoom = null;
+        let currentRoomData = null;
+        let selectedCharacter = "squeak";
+        let canvas, ctx;
+        let mapSize = 13; 
+        let tileSize = 24;
+        let imgCache = {};
+
+        // Resimleri önceden yükle (Önbellek)
+        Object.keys(PETS_DATA).forEach(key => {
+            let img = new Image();
+            img.src = RAW + PETS_DATA[key].img;
+            imgCache[key] = img;
+        });
+
+        // Lobi Ekranındaki Fotoğraflı Grid Kartlarını Doldur
+        function buildCharGrid() {
+            let grid = document.getElementById('char-card-container');
+            grid.innerHTML = "";
+            Object.keys(PETS_DATA).forEach(key => {
+                let p = PETS_DATA[key];
+                let card = document.createElement('div');
+                card.className = `char-card ${key === selectedCharacter ? 'selected' : ''}`;
+                card.onclick = () => selectChar(key);
+                card.innerHTML = `<img src="${RAW + p.img}"><span>${p.name}</span>`;
+                grid.appendChild(card);
+            });
+            document.getElementById('char-desc').innerText = PETS_DATA[selectedCharacter].name + ": " + PETS_DATA[selectedCharacter].desc;
+        }
+
+        function selectChar(key) {
+            selectedCharacter = key;
+            document.querySelectorAll('.char-card').forEach(c => c.classList.remove('selected'));
+            buildCharGrid();
+        }
+
+        buildCharGrid();
+
+        // Lobiye Bağlanma ve Odaları Kurma
+        window.joinRoom = function() {
+            let name = document.getElementById('username').value.trim();
+            let room = document.getElementById('room-id').value.trim();
+
+            if(!name || !room) { alert("Lütfen adını ve oda kodunu gir!"); return; }
+
+            myId = "p_" + Math.random().toString(36).substr(2, 4);
+            myRoom = room;
+
+            const roomRef = ref(db, 'bomber_rooms/' + myRoom);
+            
+            runTransaction(roomRef, (currentData) => {
+                if (currentData === null) {
+                    let newMap = generateMap();
+                    return {
+                        status: "waiting",
+                        map: newMap,
+                        players: {
+                            [myId]: { name: name, character: selectedCharacter, x: 1, y: 1, isAlive: true, abilityReady: true, lastBombId: "" }
+                        }
+                    };
+                } else {
+                    if(currentData.status === "playing") return;
+                    let pCount = Object.keys(currentData.players || {}).length;
+                    if(pCount >= 4) return;
+                    
+                    let spawnPoints = [{x:1,y:1}, {x:11,y:1}, {x:1,y:11}, {x:11,y:11}];
+                    let pos = spawnPoints[pCount] || {x:1,y:1};
+
+                    currentData.players[myId] = {
+                        name: name, character: selectedCharacter, x: pos.x, y: pos.y, isAlive: true, abilityReady: true, lastBombId: ""
+                    };
+                    return currentData;
+                }
+            }).then(() => {
+                document.getElementById('btn-join').style.display = 'none';
+                document.getElementById('lobby-list').style.display = 'block';
+                listenRoom();
+            });
+        };
+
+        function generateMap() {
+            let m = [];
+            for(let y=0; y<mapSize; y++) {
+                for(let x=0; x<mapSize; x++) {
+                    if(x===0 || y===0 || x===mapSize-1 || y===mapSize-1) { m.push(1); }
+                    else if(x%2===0 && y%2===0) { m.push(1); }
+                    else if((x<3 && y<3) || (x>9 && y<3) || (x<3 && y>9) || (x>9 && y>9)) { m.push(0); }
+                    else { m.push(Math.random() > 0.4 ? 2 : 0); }
+                }
+            }
+            return m;
+        }
+
+        function listenRoom() {
+            onValue(ref(db, 'bomber_rooms/' + myRoom), (snapshot) => {
+                const data = snapshot.val();
+                if(!data) return;
+                currentRoomData = data;
+
+                if(data.status === "waiting") {
+                    let pKeys = Object.keys(data.players || {});
+                    let container = document.getElementById('players-container');
+                    container.innerHTML = "";
+                    pKeys.forEach((k, idx) => {
+                        let p = data.players[k];
+                        container.innerHTML += `<div class="lobby-p"><span>${idx+1}. ${p.name} (${p.character.toUpperCase()})</span><b>HAZIR</b></div>`;
+                    });
+
+                    if(pKeys[0] === myId) {
+                        document.getElementById('btn-start').style.display = 'block';
+                    }
+                } else if(data.status === "playing") {
+                    if(document.getElementById('lobby-screen').style.display !== 'none') {
+                        setupGameCanvas();
+                    }
+                    drawArena();
+                }
+            });
+        }
+
+        window.startGame = function() {
+            update(ref(db, 'bomber_rooms/' + myRoom), { status: "playing" });
+        };
+
+        function setupGameCanvas() {
+            document.getElementById('lobby-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            document.getElementById('hud-room-id').innerText = "ODA KODU: " + myRoom;
+
+            canvas = document.getElementById('bomber-canvas');
+            ctx = canvas.getContext('2d');
+            
+            let renderSize = Math.min(window.innerWidth, window.innerHeight * 0.6, 330);
+            canvas.width = renderSize;
+            canvas.height = renderSize;
+            tileSize = renderSize / mapSize;
+
+            setupTouchControls();
+        }
+
+        // ==========================================
+        // ARENA ÇİZİM MOTORU (FOTOĞRAF DESTEKLİ)
+        // ==========================================
+        function drawArena() {
+            if(!ctx || !currentRoomData) return;
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+
+            let map = currentRoomData.map;
+            let players = currentRoomData.players;
+            let bombs = currentRoomData.bombs || {};
+            let explosions = currentRoomData.explosions || {};
+
+            // 1. Haritayı Çiz
+            for(let y=0; y<mapSize; y++) {
+                for(let x=0; x<mapSize; x++) {
+                    let tile = map[y * mapSize + x];
+                    if(tile === 1) { ctx.fillStyle = "#2d325a"; ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize); }
+                    if(tile === 2) { ctx.fillStyle = "#b33939"; ctx.fillRect(x*tileSize, y*tileSize, tileSize-1, tileSize-1); }
+                }
+            }
+
+            // 2. Bombaları Çiz
+            for(let bid in bombs) {
+                let b = bombs[bid];
+                ctx.fillStyle = "#111"; ctx.beginPath();
+                ctx.arc((b.x+0.5)*tileSize, (b.y+0.5)*tileSize, tileSize*0.4, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = varColor(bid); ctx.fillRect((b.x+0.45)*tileSize, (b.y+0.1)*tileSize, tileSize*0.1, tileSize*0.2);
+            }
+
+            // 3. Patlamaları Çiz
+            ctx.fillStyle = "rgba(255, 71, 87, 0.85)";
+            for(let eid in explosions) {
+                let exp = explosions[eid];
+                exp.cells.forEach(c => { ctx.fillRect(c.x*tileSize, c.y*tileSize, tileSize, tileSize); });
+            }
+
+            // 4. Oyuncuların FOTOĞRAFLARINI Çiz
+            for(let pid in players) {
+                let p = players[pid];
+                if(!p.isAlive) continue;
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.42, 0, Math.PI*2);
+                ctx.clip();
+
+                // Fotoğrafı önbellekten çekip çiziyoruz
+                try {
+                    ctx.drawImage(imgCache[p.character], p.x*tileSize, p.y*tileSize, tileSize, tileSize);
+                } catch(e) {
+                    ctx.fillStyle = "#fff"; ctx.fill();
+                }
+                ctx.restore();
+
+                // İttifak Çerçeve Rengi (Sen: Mavi, Düşmanlar: Kırmızı)
+                ctx.strokeStyle = (pid === myId) ? "#00d2ff" : "#ff4757";
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.42, 0, Math.PI*2); ctx.stroke();
+
+                // İsmi kafasının üstüne yaz
+                ctx.fillStyle = "#fff"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText(p.name, (p.x+0.5)*tileSize, (p.y+0.2)*tileSize);
+
+                // Kalkan koruması efekti (Tom)
+                if(p.character === 'tom' && p.shieldActive) {
+                    ctx.strokeStyle = "#9b59b6"; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.48, 0, Math.PI*2); ctx.stroke();
+                }
+            }
+        }
+
+        function varColor(b) { return "#f1c40f"; }
+
+        function setupTouchControls() {
+            document.querySelectorAll('.dbtn').forEach(btn => {
+                btn.ontouchstart = (e) => { e.preventDefault(); handleMove(btn.getAttribute('data-dir')); };
+                btn.onmousedown = () => { handleMove(btn.getAttribute('data-dir')); };
+            });
+            let myChar = currentRoomData.players[myId].character;
+            document.getElementById('action-skill').innerText = PETS_DATA[myChar].emoji;
+        }
+
+        function handleMove(dir) {
+            if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
+            let me = currentRoomData.players[myId];
+            let tx = me.x, ty = me.y;
+
+            if(dir === 'up') ty--; if(dir === 'down') ty++;
+            if(dir === 'left') tx--; if(dir === 'right') tx++;
+
+            if(currentRoomData.map[ty * mapSize + tx] === 0) {
+                let hasBomb = false;
+                let bombs = currentRoomData.bombs || {};
+                for(let id in bombs) { if(bombs[id].x === tx && bombs[id].y === ty) hasBomb = true; }
+                
+                if(!hasBomb) {
+                    update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { x: tx, y: ty });
+                }
+            }
+        }
+
+        window.placeBomb = function() {
+            if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
+            let me = currentRoomData.players[myId];
+            
+            let bid = "b_" + Math.random().toString(36).substr(2, 4);
+            let bX = me.x, bY = me.y;
+
+            let bombs = currentRoomData.bombs || {};
+            for(let id in bombs) { if(bombs[id].x === bX && bombs[id].y === bY) return; }
+
+            let bombData = { x: bX, y: bY, owner: myId, range: 2 };
+            
+            if(me.character === 'dot') {
+                update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), bombData);
+                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { lastBombId: bid });
+                return;
+            }
+
+            update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), bombData);
+            update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { lastBombId: bid });
+
+            setTimeout(() => { explodeBomb(bid); }, 3000);
+        };
+
+        window.useSpecialAbility = function() {
+            if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
+            let me = currentRoomData.players[myId];
+            if(!me.abilityReady) return;
+
+            if(me.character === 'flip' && me.lastBombId) {
+                explodeBomb(me.lastBombId); useUpAbility();
+            }
+            else if(me.character === 'dot' && me.lastBombId) {
+                explodeBomb(me.lastBombId);
+                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { lastBombId: "" });
+            }
+            else if(me.character === 'tom') {
+                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { shieldActive: true });
+                useUpAbility();
+                setTimeout(() => { update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { shieldActive: false }); }, 2000);
+            }
+            else if(me.character === 'sugar') {
+                let directions = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
+                directions.forEach(d => {
+                    let kX = me.x + d.x, kY = me.y + d.y;
+                    if(currentRoomData.map[kY * mapSize + kX] === 2) {
+                        let nextX = kX + d.x, nextY = kY + d.y;
+                        if(currentRoomData.map[nextY * mapSize + nextX] === 0) {
+                            let updatedMap = [...currentRoomData.map];
+                            updatedMap[kY * mapSize + kX] = 0;
+                            updatedMap[nextY * mapSize + nextX] = 2;
+                            update(ref(db, `bomber_rooms/${myRoom}`), { map: updatedMap });
+                            useUpAbility();
+                        }
+                    }
+                });
+            }
+            else if(me.character === 'becca') {
+                let bombs = currentRoomData.bombs || {};
+                let directions = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
+                for(let bid in bombs) {
+                    directions.forEach(d => {
+                        if(bombs[bid].x === me.x + d.x && bombs[bid].y === me.y + d.y) {
+                            let newX = bombs[bid].x + (d.x * 2);
+                            let newY = bombs[bid].y + (d.y * 2);
+                            if(currentRoomData.map[newY * mapSize + newX] === 0) {
+                                update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), { x: newX, y: newY });
+                                useUpAbility();
+                            }
+                        }
+                    });
+                }
+            }
+        };
+
+        function useUpAbility() {
+            update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { abilityReady: false });
+            document.getElementById('action-skill').disabled = true;
+        }
+
+        function explodeBomb(bid) {
+            if(!currentRoomData || !currentRoomData.bombs || !currentRoomData.bombs[bid]) return;
+            let b = currentRoomData.bombs[bid];
+            let range = b.range || 2;
+            let cells = [{ x: b.x, y: b.y }];
+
+            let directions = [{x:0,y:-1}, {x:0,y:1}, {x:-1,y:0}, {x:1,y:0}];
+            let updatedMap = [...currentRoomData.map];
+
+            directions.forEach(d => {
+                for(let i=1; i<=range; i++) {
+                    let cx = b.x + (d.x * i);
+                    let cy = b.y + (d.y * i);
+                    let idx = cy * mapSize + cx;
+
+                    if(updatedMap[idx] === 1) break;
+                    cells.push({ x: cx, y: cy });
+                    if(updatedMap[idx] === 2) { updatedMap[idx] = 0; break; }
+                }
+            });
+
+            remove(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`));
+            update(ref(db, `bomber_rooms/${myRoom}`), { map: updatedMap });
+
+            let eid = "e_" + Math.random().toString(36).substr(2, 4);
+            set(ref(db, `bomber_rooms/${myRoom}/explosions/${eid}`), { cells: cells });
+
+            let players = currentRoomData.players;
+            for(let pid in players) {
+                let p = players[pid];
+                if(!p.isAlive || p.shieldActive) continue;
+
+                cells.forEach(c => {
+                    if(p.x === c.x && p.y === c.y) {
+                        update(ref(db, `bomber_rooms/${myRoom}/players/${pid}`), { isAlive: false });
+                        if(pid === myId) { alert("ELENDİNİZ! 💀"); }
+                    }
+                });
+            }
+
+            setTimeout(() => {
+                remove(ref(db, `bomber_rooms/${myRoom}/explosions/${eid}`));
+                checkVictoryConditions();
+            }, 500);
+        }
+
+        function checkVictoryConditions() {
+            if(!currentRoomData || currentRoomData.status !== "playing") return;
+            let players = currentRoomData.players;
+            let alivePlayers = [];
+
+            for(let pid in players) { if(players[pid].isAlive) alivePlayers.push(players[pid].name); }
+
+            if(alivePlayers.length === 1) {
+                alert(`KAZANAN: ${alivePlayers[0]} 🏆`); leaveGame();
+            } else if(alivePlayers.length === 0) {
+                alert("HERKES PATLADI! BERABERE 💥"); leaveGame();
+            }
+        }
+
+        window.leaveGame = function() {
+            if(myRoom && myId) { remove(ref(db, `bomber_rooms/${myRoom}/players/${myId}`)); }
+            location.reload();
+        };
+    </script>
+</body>
+</html>
