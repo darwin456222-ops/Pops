@@ -170,7 +170,7 @@
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
-        // Klasör içi yerel okuma için PETS_DATA güncellendi (.webp formatında)
+        // Tamamen .webp uzantılı yerel dosya yapısı
         const PETS_DATA = {
             squeak: { name: "SQUEAK", img: "squeak.webp", desc: "5 sn boyunca basma gecikmesini siler, ultra hızlı koşar!", emoji: "⚡" },
             gus:     { name: "GUS",     img: "gus.webp",    desc: "2 saniye boyunca hiçbir patlamadan hasar almaz!", emoji: "🛡️" },
@@ -202,18 +202,18 @@
         }
         loadLevels();
 
-        // RESİM PRELOADER - İnternete değil, direkt yanındaki dosyalara bakar
+        // RESİM YÜKLEYİCİ - Doğrudan klasör içindeki yerel dosyalara bakar
         function preloadImages() {
             const promises = Object.keys(PETS_DATA).map(key => {
                 return new Promise((resolve) => {
                     let img = new Image();
-                    img.src = PETS_DATA[key].img; // Tamamen yerel dosyadan çağırır
+                    img.src = PETS_DATA[key].img;
                     img.onload = () => {
                         imgCache[key] = img;
                         resolve();
                     };
                     img.onerror = () => {
-                        console.error("Yerel dosya bulunamadı veya yüklenemedi: " + PETS_DATA[key].img);
+                        console.error("Yerel dosya okunamadı: " + PETS_DATA[key].img);
                         resolve();
                     };
                 });
@@ -303,6 +303,10 @@
             myId = "p_" + Math.random().toString(36).substr(2, 4);
             myRoom = roomCode;
 
+            // Oda ilk kurulduğunda/girildiğinde kod panelini günceller
+            document.getElementById('lobby-status-title').innerHTML = `ODA KODU: <span style="color:#f1c40f; font-size:20px; letter-spacing:2px; font-weight:900;">${myRoom}</span>`;
+            document.getElementById('lobby-list').style.display = 'block';
+
             const roomRef = ref(db, 'bomber_rooms/' + myRoom);
             runTransaction(roomRef, (currentData) => {
                 if (currentData === null) {
@@ -328,7 +332,6 @@
                     return currentData;
                 }
             }).then(() => {
-                document.getElementById('lobby-list').style.display = 'block';
                 listenRoom();
             });
         }
@@ -360,6 +363,9 @@
                         let p = data.players[k];
                         container.innerHTML += `<div class="lobby-p"><span>${idx+1}. ${p.name} (${p.character.toUpperCase()})</span><b>HAZIR</b></div>`;
                     });
+
+                    // Lobi güncellendikçe oda kodunun ekranda kalmasını garanti eder
+                    document.getElementById('lobby-status-title').innerHTML = `ODA KODU: <span style="color:#f1c40f; font-size:22px; letter-spacing:2px; font-weight:900;">${myRoom}</span><br><span style="font-size:12px; color:#ccc;">Odadaki Oyuncular:</span>`;
 
                     if(pKeys[0] === myId) {
                         document.getElementById('btn-start').style.display = 'block';
