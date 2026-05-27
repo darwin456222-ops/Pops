@@ -51,6 +51,7 @@
         .btn-blue { background: var(--accent); color: #000; }
         .btn-purple { background: #9b59b6; color: #fff; }
         .btn-orange { background: #e67e22; color: #fff; }
+        .btn-danger { background: var(--danger); color: #fff; }
         .btn-main { grid-column: span 2; height: 48px; font-size: 15px; }
 
         /* MODAL / KARAKTERLER MENÜSÜ */
@@ -119,7 +120,12 @@
             <button class="btn-orange" onclick="startMatchmaking(4)">RASTGELE 4</button>
         </div>
 
-        <button class="btn-blue btn-main" style="background: #34495e; color: #fff;" onclick="toggleModal(true)">🏅 KARAKTERLER (LEVEL)</button>
+        <!-- HESAP AYARLARI VE LİSTELER BUTONLARI -->
+        <div class="btn-group" style="width:100%; max-width:320px; margin-bottom:8px;">
+            <button class="btn-blue" style="background: #34495e; color: #fff; height:40px; font-size:11px;" onclick="toggleModal(true)">🏅 LVELLER</button>
+            <button class="btn-danger" style="height:40px; font-size:11px; background:#c0392b;" onclick="resetAccount()">🔄 HESABI SIFIRLA</button>
+        </div>
+
         <button id="btn-start" style="display:none; background:var(--success); margin-top: 8px;" onclick="startGame()" disabled>OYUNCU BEKLENİYOR... ⏳</button>
 
         <div id="lobby-list" style="display:none;">
@@ -211,6 +217,15 @@
             document.getElementById('username').value = savedName;
         }
 
+        // ESKİ HESAP VERİLERİNİ TEMİZLEME VE ÇIKIŞ YAPMA
+        window.resetAccount = function() {
+            if(confirm("Hesabını sıfırlamak ve çıkış yapmak istediğine emin misin? Tüm karakter seviyelerin sıfırlanacaktır!")) {
+                localStorage.clear(); // Tüm yerel hafızayı boşaltır
+                alert("Hesap başarıyla temizlendi! Oyun yeniden başlatılıyor.");
+                location.reload();
+            }
+        };
+
         function preloadImages() {
             const promises = Object.keys(PETS_DATA).map(key => {
                 return new Promise((resolve) => {
@@ -275,7 +290,7 @@
             if(!name) { alert("Lütfen takma adını gir!"); return; }
             localStorage.setItem("bomber_username", name);
             let rCode = generateRandomRoomCode();
-            enterRoom(name, rCode, 4); // Özel odalar varsayılan 4 kişiliktir
+            enterRoom(name, rCode, 4);
         };
 
         window.joinCustomRoom = function() {
@@ -286,7 +301,6 @@
             enterRoom(name, room, 4);
         };
 
-        // YENİ EŞLEŞME SİSTEMİ: TargetCount kontrolü eklendi, farklı tuşlar ayrıştırıldı!
         window.startMatchmaking = function(targetPlayers) {
             let name = document.getElementById('username').value.trim();
             if(!name) { alert("Lütfen takma adını gir!"); return; }
@@ -300,7 +314,6 @@
                 let foundRoom = null;
                 if(rooms) {
                     for(let rId in rooms) {
-                        // SADECE HEDEFLENEN OYUNCU SAYISI TAM OLARAK AYNI OLAN ODALARA GİRİŞ İZNİ VERİR!
                         if(rooms[rId].status === "waiting" && rooms[rId].targetCount === targetPlayers) {
                             let pCount = Object.keys(rooms[rId].players || {}).length;
                             if(pCount < targetPlayers) { foundRoom = rId; break; }
@@ -383,13 +396,11 @@
                         btnStart.style.display = 'block';
                     }
 
-                    // YENİ GÜVENLİK KONTROLÜ: Kişi sayısı dolmadan buton açılmaz, hileyle basılamaz!
                     if(pKeys.length === data.targetCount) {
                         btnStart.disabled = false;
                         btnStart.style.background = "var(--success)";
                         btnStart.innerText = "OYUNU BAŞLAT 🚀";
                         
-                        // Eğer lobi kurucusu ise oyunu tam sayıya ulaşınca otomatik başlatır
                         if(pKeys[0] === myId) {
                             startGame();
                         }
@@ -409,7 +420,6 @@
         }
 
         window.startGame = function() {
-            // Butonun kilitli olma ihtimaline karşı fonksiyon içi ek tedbir koruması
             let pKeys = Object.keys(currentRoomData.players || {});
             if(pKeys.length < currentRoomData.targetCount) {
                 alert("Oda henüz dolmadı, tek başına oyun başlatamazsın!");
@@ -740,15 +750,16 @@
             }, 500);
         }
 
+        // YENİ SEVİYE SİSTEMİ: Sadece kazanan kişi çağırırsa çalışacak
         function triggerLevelUp() {
             let currentLvl = charLevels[selectedCharacter] || 1;
             if(currentLvl < 5) {
                 let newLvl = currentLvl + 1;
                 charLevels[selectedCharacter] = newLvl;
                 localStorage.setItem(`bomber_lvl_${selectedCharacter}`, newLvl);
-                alert(`Maç bitti! Oynadığın karakter ${PETS_DATA[selectedCharacter].name} Seviye Atladı: Lvl ${newLvl}! 🏅`);
+                alert(`Tebrikler Kazandın! Oynadığın karakter ${PETS_DATA[selectedCharacter].name} Seviye Atladı: Lvl ${newLvl}! 🏅`);
             } else {
-                alert(`Maç bitti! ${PETS_DATA[selectedCharacter].name} zaten maksimum seviyede (Lvl 5)!`);
+                alert(`Tebrikler Kazandın! ${PETS_DATA[selectedCharacter].name} zaten maksimum seviyede (Lvl 5)!`);
             }
             loadLevels();
             buildCharGrid();
@@ -758,16 +769,25 @@
             if(!currentRoomData || currentRoomData.status !== "playing") return;
             let players = currentRoomData.players;
             let alivePlayers = [];
+            let winnerId = null;
 
-            for(let pid in players) { if(players[pid].isAlive) alivePlayers.push(players[pid].name); }
+            for(let pid in players) { 
+                if(players[pid].isAlive) {
+                    alivePlayers.push(players[pid].name);
+                    winnerId = pid;
+                } 
+            }
 
             if(alivePlayers.length === 1) {
                 alert(`KAZANAN: ${alivePlayers[0]} 🏆`); 
-                triggerLevelUp();
+                // YENİ KONTROL: Sadece kazanan ID bendeysem benim seviyem artar!
+                if(winnerId === myId) {
+                    triggerLevelUp();
+                }
                 leaveGame();
             } else if(alivePlayers.length === 0) {
                 alert("HERKES PATLADI! BERABERE 💥"); 
-                triggerLevelUp();
+                // Beraberlikte kimse seviye atlamaz!
                 leaveGame();
             }
         }
