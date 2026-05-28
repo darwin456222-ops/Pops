@@ -1,9 +1,9 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>The Pets: Bomber Online (Gold Edition)</title>
+    <title>The Pets: Bomber Online (Final Edition)</title>
     <style>
         :root {
             --bg: #090a14;
@@ -24,8 +24,7 @@
         .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; z-index: 10; background: radial-gradient(circle, #1a1c3a, #090a14); overflow-y: auto; }
         h1 { color: var(--accent); text-shadow: 0 0 10px var(--accent); font-size: 26px; margin-bottom: 5px; text-align: center; font-weight: 900; letter-spacing: 1px; }
 
-        /* ALTIN GÖSTERGESİ */
-        .gold-display { background: rgba(241, 196, 15, 0.15); border: 2px solid var(--warning); color: var(--warning); padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 15px; margin-bottom: 12px; box-shadow: 0 0 10px rgba(241, 196, 15, 0.3); display: flex; align-items: center; gap: 6px; }
+        .gold-display { background: rgba(241, 196, 15, 0.15); border: 2px solid var(--warning); color: var(--warning); padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 14px; box-shadow: 0 0 10px rgba(241, 196, 15, 0.3); display: flex; align-items: center; gap: 6px; }
 
         .input-group { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
         input { width: 100%; height: 44px; background: #202447; border: 2px solid var(--border); border-radius: 10px; color: white; padding: 0 15px; font-size: 14px; outline: none; text-align: center; font-weight: bold; }
@@ -38,8 +37,7 @@
         .char-card .lvl-badge { position: absolute; top: 2px; right: 2px; background: var(--warning); color: black; font-size: 8px; font-weight: bold; padding: 1px 4px; border-radius: 4px; }
         .char-card.selected { border-color: var(--accent); box-shadow: 0 0 12px rgba(0,210,255,0.5); background: #1b244a; }
 
-        /* YÜKSELTME BUTONU */
-        .btn-upgrade { width: 100%; max-width: 320px; height: 38px; background: var(--success); color: white; font-weight: bold; font-size: 12px; margin-bottom: 12px; border-radius: 8px; display: none; }
+        .btn-upgrade { width: 100%; max-width: 320px; height: 38px; background: var(--success); color: white; font-weight: bold; font-size: 12px; margin-bottom: 12px; border-radius: 8px; display: none; border: none; cursor: pointer; }
         .btn-upgrade:disabled { background: #34495e; color: #7f8c8d; cursor: not-allowed; }
 
         #char-desc { font-size: 11px; color: #ccc; text-align: center; margin-bottom: 12px; line-height: 1.4; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; width: 100%; max-width: 320px; border: 1px solid #252952; }
@@ -96,9 +94,10 @@
     </div>
 
     <div id="lobby-screen" class="screen" style="display:none;">
-        <h1>THE PETS: BOMBER</h1>
-        
-        <div class="gold-display">🪙 ALTIN: <span id="gold-amount">0</span></div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 10px; width: 100%; max-width: 320px;">
+            <h1>THE PETS: BOMBER</h1>
+            <div class="gold-display">🪙 ALTININIZ: <span id="gold-amount">0</span></div>
+        </div>
 
         <div class="input-group">
             <input type="text" id="username" placeholder="Takma Adın" maxlength="10">
@@ -106,9 +105,7 @@
         </div>
 
         <div class="char-grid" id="char-card-container"></div>
-        
         <button id="upgrade-btn" class="btn-upgrade" onclick="upgradeCharacter()">YÜKSELT (100 🪙)</button>
-
         <div id="char-desc">Yükleniyor...</div>
 
         <div class="btn-group">
@@ -148,7 +145,7 @@
                 <div class="dbtn d-right" data-dir="right">▶</div>
             </div>
             <div class="action-btns">
-                <button class="act-btn btn-ability" id="action-skill" onclick="useSpecialAbility()">🌟</button>
+                <button class="act-btn btn-ability" id="action-skill">🌟</button>
                 <button class="act-btn btn-bomb" onclick="placeBomb()">💣</button>
             </div>
         </div>
@@ -186,7 +183,6 @@
         let canvas, ctx; let mapSize = 13; let tileSize = 24; let imgCache = {}; let isMovingCooldown = false;
         let charLevels = {}; let myGold = 0; let roomListenerRef = null; let botInterval = null;
 
-        // VERİLERİ VE ALTINLARI YÜKLE
         function loadPlayerData() {
             Object.keys(PETS_DATA).forEach(key => {
                 let lvl = localStorage.getItem(`bomber_lvl_${key}`); charLevels[key] = lvl ? parseInt(lvl) : 1;
@@ -201,10 +197,10 @@
         if (savedName) { document.getElementById('username').value = savedName; }
 
         window.resetAccount = async function() {
-            if(confirm("Hesabını sıfırlamak ve çıkış yapmak istediğine emin misin? Tüm verilerin temizlenecektir!")) {
+            if(confirm("Hesabını sıfırlamak ve çıkış yapmak istediğine emin misin?")) {
                 if(roomListenerRef) off(roomListenerRef);
                 if(myRoom && myId) { try { await remove(ref(db, `bomber_rooms/${myRoom}/players/${myId}`)); } catch(e) {} }
-                localStorage.clear(); sessionStorage.clear(); alert("Hesap kökten temizlendi!"); location.reload();
+                localStorage.clear(); sessionStorage.clear(); location.reload();
             }
         };
 
@@ -234,36 +230,22 @@
             
             document.getElementById('char-desc').innerText = PETS_DATA[selectedCharacter].name + " (Lvl " + charLevels[selectedCharacter] + "): " + PETS_DATA[selectedCharacter].desc;
             
-            // Yükseltme butonu durumunu kontrol et
-            let upgradeBtn = document.getElementById('upgrade-btn');
-            upgradeBtn.style.display = "block";
+            let upgradeBtn = document.getElementById('upgrade-btn'); upgradeBtn.style.display = "block";
             let currentLvl = charLevels[selectedCharacter];
-            
-            if(currentLvl >= 5) {
-                upgradeBtn.disabled = true;
-                upgradeBtn.innerText = "MAKSİMUM SEVİYE (LVL 5)";
-            } else if(myGold < 100) {
-                upgradeBtn.disabled = true;
-                upgradeBtn.innerText = "YETERSİZ ALTIN (100 🪙)";
-            } else {
-                upgradeBtn.disabled = false;
-                upgradeBtn.innerText = `YÜKSELT (100 🪙)`;
-            }
+            if(currentLvl >= 5) { upgradeBtn.disabled = true; upgradeBtn.innerText = "MAKSİMUM SEVİYE (LVL 5)"; }
+            else if(myGold < 100) { upgradeBtn.disabled = true; upgradeBtn.innerText = "YETERSİZ ALTIN (100 🪙)"; }
+            else { upgradeBtn.disabled = false; upgradeBtn.innerText = `YÜKSELT (100 🪙)`; }
         }
         preloadImages();
 
-        // ALTIN HARCAYARAK KARAKTER YÜKSELTME FONKSİYONU
         window.upgradeCharacter = function() {
             let currentLvl = charLevels[selectedCharacter];
             if(myGold >= 100 && currentLvl < 5) {
-                myGold -= 100;
-                charLevels[selectedCharacter] = currentLvl + 1;
-                
+                myGold -= 100; charLevels[selectedCharacter] = currentLvl + 1;
                 localStorage.setItem("bomber_gold", myGold);
                 localStorage.setItem(`bomber_lvl_${selectedCharacter}`, charLevels[selectedCharacter]);
-                
                 document.getElementById('gold-amount').innerText = myGold;
-                alert(`🏅 ${PETS_DATA[selectedCharacter].name} başarıyla Seviye ${currentLvl + 1} oldu!`);
+                alert(`🏅 ${PETS_DATA[selectedCharacter].name} Seviye ${currentLvl + 1} oldu!`);
                 buildCharGrid();
             }
         };
@@ -314,7 +296,12 @@
         };
 
         function enterRoom(name, roomCode, maxPlayers) {
-            if(roomListenerRef) off(roomListenerRef); myId = "p_" + Math.random().toString(36).substr(2, 4); myRoom = roomCode;
+            if(roomListenerRef) off(roomListenerRef);
+            if (!sessionStorage.getItem("bomber_player_id")) {
+                sessionStorage.setItem("bomber_player_id", "p_" + Math.random().toString(36).substr(2, 4));
+            }
+            myId = sessionStorage.getItem("bomber_player_id"); myRoom = roomCode;
+
             document.getElementById('lobby-status-title').innerHTML = `ODA KODU: <span style="color:#f1c40f; font-size:20px; letter-spacing:2px; font-weight:900;">${myRoom}</span>`;
             document.getElementById('lobby-list').style.display = 'block';
 
@@ -327,6 +314,10 @@
                     };
                 } else {
                     if(currentData.status === "playing") return;
+                    if (currentData.players && currentData.players[myId]) {
+                        currentData.players[myId].name = name; currentData.players[myId].character = selectedCharacter;
+                        return currentData;
+                    }
                     let pKeys = Object.keys(currentData.players || {}); if(pKeys.length >= currentData.targetCount) return;
                     let spawnPoints = [{x:1,y:1}, {x:11,y:1}, {x:1,y:11}, {x:11,y:11}]; let pos = spawnPoints[pKeys.length] || {x:1,y:1};
                     currentData.players[myId] = { name: name, character: selectedCharacter, x: pos.x, y: pos.y, isAlive: true, abilityReady: true, lastBombId: "", isBot: false };
@@ -351,6 +342,19 @@
         function listenRoom() {
             onValue(roomListenerRef, (snapshot) => {
                 const data = snapshot.val(); if(!data) return; currentRoomData = data;
+
+                // --- 🛡️ KLON GÜVENLİK KONTROLÜ (AYNI İSİMDEKİLERİ ATMA) ---
+                if (data.players) {
+                    let pKeys = Object.keys(data.players); let nameCounts = {};
+                    pKeys.forEach(k => {
+                        let pName = data.players[k].name; if (pName) { nameCounts[pName] = (nameCounts[pName] || 0) + 1; }
+                    });
+                    let myName = data.players[myId] ? data.players[myId].name : null;
+                    if (myName && nameCounts[myName] > 1) {
+                        alert(`⚠️ Odada zaten "${myName}" isminde bir oyuncu var! Odadan atıldınız.`);
+                        leaveGame(); return;
+                    }
+                }
 
                 if(data.status === "waiting") {
                     let pKeys = Object.keys(data.players || {}); let container = document.getElementById('players-container'); container.innerHTML = "";
@@ -388,47 +392,36 @@
             if(botInterval) clearInterval(botInterval);
             botInterval = setInterval(() => {
                 if(!currentRoomData || currentRoomData.status !== "playing") return;
-                let pKeys = Object.keys(currentRoomData.players || {});
-                if(pKeys[0] !== myId) return;
+                let pKeys = Object.keys(currentRoomData.players || {}); if(pKeys[0] !== myId) return;
 
                 pKeys.forEach(pId => {
-                    let bot = currentRoomData.players[pId];
-                    if(!bot.isBot || !bot.isAlive || bot.isFrozen) return;
-
-                    let dangerZones = getDangerZones();
-                    let inDanger = dangerZones.some(z => z.x === bot.x && z.y === bot.y);
+                    let bot = currentRoomData.players[pId]; if(!bot.isBot || !bot.isAlive || bot.isFrozen) return;
+                    let dangerZones = getDangerZones(); let inDanger = dangerZones.some(z => z.x === bot.x && z.y === bot.y);
 
                     if(inDanger) {
                         let safeMoves = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}].map(d => ({x:bot.x+d.x, y:bot.y+d.y}))
                             .filter(m => currentRoomData.map[m.y * mapSize + m.x] === 0)
-                            .filter(m => !dangerZones.some(z => z.x === m.x && z.y === z.y));
-                        
+                            .filter(m => !dangerZones.some(z => z.x === m.x && z.y === m.y));
                         if(safeMoves.length > 0) {
                             let nextMove = safeMoves[Math.floor(Math.random() * safeMoves.length)];
                             update(ref(db, `bomber_rooms/${myRoom}/players/${pId}`), { x: nextMove.x, y: nextMove.y });
                         }
                     } else {
-                        let directions = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
-                        let nearWallOrPlayer = false;
-
+                        let directions = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}]; let nearWallOrPlayer = false;
                         directions.forEach(d => {
                             let tx = bot.x + d.x, ty = bot.y + d.y;
                             if(currentRoomData.map[ty * mapSize + tx] === 2) nearWallOrPlayer = true;
                             for(let id in currentRoomData.players) {
-                                if(id !== pId && currentRoomData.players[id].isAlive && currentRoomData.players[id].x === tx && currentRoomData.players[id].y === ty) {
-                                    nearWallOrPlayer = true;
-                                }
+                                if(id !== pId && currentRoomData.players[id].isAlive && currentRoomData.players[id].x === tx && currentRoomData.players[id].y === ty) { nearWallOrPlayer = true; }
                             }
                         });
 
                         if(nearWallOrPlayer && Math.random() > 0.4) {
                             let bid = "b_bot_" + Math.random().toString(36).substr(2,3);
-                            let bombData = { x: bot.x, y: bot.y, owner: pId, range: 2, isMega: false };
-                            update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), bombData);
+                            update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), { x: bot.x, y: bot.y, owner: pId, range: 2, isMega: false });
                             setTimeout(() => { explodeBomb(bid); }, 2500);
                         } else {
-                            let validMoves = directions.map(d => ({x:bot.x+d.x, y:bot.y+d.y}))
-                                .filter(m => currentRoomData.map[m.y * mapSize + m.x] === 0);
+                            let validMoves = directions.map(d => ({x:bot.x+d.x, y:bot.y+d.y})).filter(m => currentRoomData.map[m.y * mapSize + m.x] === 0);
                             if(validMoves.length > 0) {
                                 let move = validMoves[Math.floor(Math.random() * validMoves.length)];
                                 update(ref(db, `bomber_rooms/${myRoom}/players/${pId}`), { x: move.x, y: move.y });
@@ -446,8 +439,7 @@
                 let dirs = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
                 dirs.forEach(d => {
                     for(let i=1; i<=2; i++) {
-                        let cx = b.x + d.x*i, cy = b.y + d.y*i;
-                        if(currentRoomData.map[cy*mapSize + cx] === 1) break;
+                        let cx = b.x + d.x*i, cy = b.y + d.y*i; if(currentRoomData.map[cy*mapSize + cx] === 1) break;
                         zones.push({x:cx, y:cy});
                     }
                 });
@@ -467,17 +459,14 @@
                     else if(tile === 2) { ctx.fillStyle = "#630000"; ctx.fillRect(x*tileSize, y*tileSize, tileSize-1, tileSize-1); }
                 }
             }
-
             for(let bid in bombs) {
                 let b = bombs[bid]; ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc((b.x+0.5)*tileSize, (b.y+0.5)*tileSize, tileSize*0.4, 0, Math.PI*2); ctx.fill();
             }
-
             for(let eid in explosions) {
                 let exp = explosions[eid]; if(exp.cells) {
                     ctx.fillStyle = "rgba(255, 71, 87, 0.85)"; exp.cells.forEach(c => { ctx.fillRect(c.x*tileSize, c.y*tileSize, tileSize, tileSize); });
                 }
             }
-
             for(let pid in players) {
                 let p = players[pid]; if(!p.isAlive) continue;
                 ctx.save(); ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.42, 0, Math.PI*2); ctx.clip();
@@ -487,7 +476,6 @@
 
                 ctx.strokeStyle = p.isBot ? "#e67e22" : ((pid === myId) ? "#00d2ff" : "#ff4757"); ctx.lineWidth = 2.5;
                 ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.42, 0, Math.PI*2); ctx.stroke();
-
                 ctx.fillStyle = "#fff"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center";
                 ctx.fillText(p.isBot ? `🤖 ${p.name}` : p.name, (p.x+0.5)*tileSize, (p.y+0.18)*tileSize);
             }
@@ -503,7 +491,7 @@
 
         function handleMove(dir) {
             if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
-            let me = currentRoomData.players[myId]; if(me.isFrozen) return; if(isMovingCooldown) return;
+            let me = currentRoomData.players[myId]; if(me.isFrozen || isMovingCooldown) return;
             let tx = me.x, ty = me.y; if(dir === 'up') ty--; if(dir === 'down') ty++; if(dir === 'left') tx--; if(dir === 'right') tx++;
             if(currentRoomData.map[ty * mapSize + tx] === 0) {
                 isMovingCooldown = true; setTimeout(() => { isMovingCooldown = false; }, 150);
@@ -548,33 +536,19 @@
             setTimeout(() => { remove(ref(db, `bomber_rooms/${myRoom}/explosions/${eid}`)); checkVictoryConditions(); }, 500);
         }
 
-        // MAÇ KAZANMA VE ALTIN EKLEME ALGORİTMASI
         function checkVictoryConditions() {
             if(!currentRoomData || currentRoomData.status !== "playing") return;
             let players = currentRoomData.players; let alivePlayers = []; let winnerId = null;
-            
-            for(let pid in players) { 
-                if(players[pid].isAlive) { 
-                    alivePlayers.push(players[pid]); 
-                    winnerId = pid;
-                } 
-            }
+            for(let pid in players) { if(players[pid].isAlive) { alivePlayers.push(players[pid]); winnerId = pid; } }
             
             if(alivePlayers.length === 1) {
                 let winnerName = alivePlayers[0].name;
-                
-                // Eğer kazanan bizsek +10 Altın ekle
                 if(winnerId === myId) {
-                    myGold += 10;
-                    localStorage.setItem("bomber_gold", myGold);
+                    myGold += 10; localStorage.setItem("bomber_gold", myGold);
                     alert(`🏆 TEBRİKLER KAZANDINIZ! 🏆\n🎁 +10 Altın Kazandınız!`);
-                } else {
-                    alert(`MAÇ BİTTİ!\nKazanan: ${winnerName} 🏆`);
-                }
+                } else { alert(`MAÇ BİTTİ!\nKazanan: ${winnerName} 🏆`); }
                 leaveGame();
-            } else if(alivePlayers.length === 0) {
-                alert("HERKES PATLADI! BERABERE 💥"); leaveGame();
-            }
+            } else if(alivePlayers.length === 0) { alert("HERKES PATLADI! BERABERE 💥"); leaveGame(); }
         }
 
         window.leaveGame = async function() {
