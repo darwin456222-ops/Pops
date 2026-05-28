@@ -172,7 +172,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, update, remove, runTransaction, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
         const firebaseConfig = {
             databaseURL: "https://tomoyunu-5cd2f-default-rtdb.europe-west1.firebasedatabase.app"
@@ -203,6 +203,7 @@
         let imgCache = {};
         let isMovingCooldown = false;
         let charLevels = {};
+        let roomListenerRef = null;
 
         function loadLevels() {
             Object.keys(PETS_DATA).forEach(key => {
@@ -217,11 +218,23 @@
             document.getElementById('username').value = savedName;
         }
 
-        // ESKİ HESAP VERİLERİNİ TEMİZLEME VE ÇIKIŞ YAPMA
-        window.resetAccount = function() {
-            if(confirm("Hesabını sıfırlamak ve çıkış yapmak istediğine emin misin? Tüm karakter seviyelerin sıfırlanacaktır!")) {
-                localStorage.clear(); // Tüm yerel hafızayı boşaltır
-                alert("Hesap başarıyla temizlendi! Oyun yeniden başlatılıyor.");
+        // GELİŞTİRİLMİŞ KÖKTEN HESAP VE VERİTABANI SIFIRLAMA FONKSİYONU
+        window.resetAccount = async function() {
+            if(confirm("Hesabını sıfırlamak ve çıkış yapmak istediğine emin misin? Tüm verilerin ve odaların temizlenecektir!")) {
+                
+                // 1. Canlı dinlemeleri durdur ve Firebase odasındaki oyuncuyu sil
+                if(myRoom && myId) {
+                    if(roomListenerRef) off(roomListenerRef);
+                    try {
+                        await remove(ref(db, `bomber_rooms/${myRoom}/players/${myId}`));
+                    } catch(e) { console.log("Oda silme es geçildi"); }
+                }
+
+                // 2. Tarayıcının tüm hafızasını kökten uçur
+                localStorage.clear();
+                sessionStorage.clear();
+
+                alert("Hesap ve Firebase kalıntıları tamamen temizlendi! Yeni karakterinle başlayabilirsin.");
                 location.reload();
             }
         };
@@ -332,8 +345,8 @@
             document.getElementById('lobby-status-title').innerHTML = `ODA KODU: <span style="color:#f1c40f; font-size:20px; letter-spacing:2px; font-weight:900;">${myRoom}</span>`;
             document.getElementById('lobby-list').style.display = 'block';
 
-            const roomRef = ref(db, 'bomber_rooms/' + myRoom);
-            runTransaction(roomRef, (currentData) => {
+            roomListenerRef = ref(db, 'bomber_rooms/' + myRoom);
+            runTransaction(roomListenerRef, (currentData) => {
                 if (currentData === null) {
                     return {
                         status: "waiting",
@@ -375,7 +388,7 @@
         }
 
         function listenRoom() {
-            onValue(ref(db, 'bomber_rooms/' + myRoom), (snapshot) => {
+            onValue(roomListenerRef, (snapshot) => {
                 const data = snapshot.val();
                 if(!data) return;
                 currentRoomData = data;
@@ -425,7 +438,7 @@
                 alert("Oda henüz dolmadı, tek başına oyun başlatamazsın!");
                 return;
             }
-            update(ref(db, 'bomber_rooms/' + myRoom), { status: "playing" });
+            update(roomListenerRef, { status: "playing" });
         };
 
         function setupGameCanvas() {
@@ -750,7 +763,6 @@
             }, 500);
         }
 
-        // YENİ SEVİYE SİSTEMİ: Sadece kazanan kişi çağırırsa çalışacak
         function triggerLevelUp() {
             let currentLvl = charLevels[selectedCharacter] || 1;
             if(currentLvl < 5) {
@@ -780,20 +792,21 @@
 
             if(alivePlayers.length === 1) {
                 alert(`KAZANAN: ${alivePlayers[0]} 🏆`); 
-                // YENİ KONTROL: Sadece kazanan ID bendeysem benim seviyem artar!
                 if(winnerId === myId) {
                     triggerLevelUp();
                 }
                 leaveGame();
             } else if(alivePlayers.length === 0) {
                 alert("HERKES PATLADI! BERABERE 💥"); 
-                // Beraberlikte kimse seviye atlamaz!
                 leaveGame();
             }
         }
 
         window.leaveGame = function() {
-            if(myRoom && myId) { remove(ref(db, `bomber_rooms/${myRoom}/players/${myId}`)); }
+            if(myRoom && myId) { 
+                if(roomListenerRef) off(roomListenerRef);
+                remove(ref(db, `bomber_rooms/${myRoom}/players/${myId}`)); 
+            }
             location.reload();
         };
     </script>
