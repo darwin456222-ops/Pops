@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>The Pets: Bomber Online</title>
+    <title>The Pets: Bomber Online (Gold Edition)</title>
     <style>
         :root {
             --bg: #090a14;
@@ -17,20 +17,20 @@
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         body { font-family: sans-serif; background: var(--bg); color: white; overflow: hidden; height: 100vh; user-select: none; touch-action: none; }
 
-        /* LOADING EKRANI */
         #loading-screen { position: fixed; inset: 0; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
         .spinner { width: 50px; height: 50px; border: 5px solid #252952; border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* EKRANLAR */
         .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; z-index: 10; background: radial-gradient(circle, #1a1c3a, #090a14); overflow-y: auto; }
-        h1 { color: var(--accent); text-shadow: 0 0 10px var(--accent); font-size: 26px; margin-bottom: 12px; text-align: center; font-weight: 900; letter-spacing: 1px; }
+        h1 { color: var(--accent); text-shadow: 0 0 10px var(--accent); font-size: 26px; margin-bottom: 5px; text-align: center; font-weight: 900; letter-spacing: 1px; }
+
+        /* ALTIN GÖSTERGESİ */
+        .gold-display { background: rgba(241, 196, 15, 0.15); border: 2px solid var(--warning); color: var(--warning); padding: 6px 16px; border-radius: 20px; font-weight: bold; font-size: 15px; margin-bottom: 12px; box-shadow: 0 0 10px rgba(241, 196, 15, 0.3); display: flex; align-items: center; gap: 6px; }
 
         .input-group { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
         input { width: 100%; height: 44px; background: #202447; border: 2px solid var(--border); border-radius: 10px; color: white; padding: 0 15px; font-size: 14px; outline: none; text-align: center; font-weight: bold; }
         input:focus { border-color: var(--accent); }
 
-        /* KARAKTER SEÇİM GRİDİ */
         .char-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; max-width: 320px; margin-bottom: 10px; }
         .char-card { position: relative; background: var(--panel); border: 2px solid var(--border); border-radius: 12px; padding: 6px; display: flex; flex-direction: column; align-items: center; text-align: center; cursor: pointer; transition: all 0.2s; }
         .char-card img { width: 55px; height: 55px; border-radius: 8px; object-fit: cover; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 4px; }
@@ -38,9 +38,12 @@
         .char-card .lvl-badge { position: absolute; top: 2px; right: 2px; background: var(--warning); color: black; font-size: 8px; font-weight: bold; padding: 1px 4px; border-radius: 4px; }
         .char-card.selected { border-color: var(--accent); box-shadow: 0 0 12px rgba(0,210,255,0.5); background: #1b244a; }
 
+        /* YÜKSELTME BUTONU */
+        .btn-upgrade { width: 100%; max-width: 320px; height: 38px; background: var(--success); color: white; font-weight: bold; font-size: 12px; margin-bottom: 12px; border-radius: 8px; display: none; }
+        .btn-upgrade:disabled { background: #34495e; color: #7f8c8d; cursor: not-allowed; }
+
         #char-desc { font-size: 11px; color: #ccc; text-align: center; margin-bottom: 12px; line-height: 1.4; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 8px; width: 100%; max-width: 320px; border: 1px solid #252952; }
 
-        /* BUTON GRUPLARI */
         .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 320px; margin-bottom: 8px; }
         .btn-triple { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; width: 100%; max-width: 320px; margin-bottom: 8px; }
         
@@ -52,15 +55,12 @@
         .btn-purple { background: #9b59b6; color: #fff; }
         .btn-orange { background: #e67e22; color: #fff; }
         .btn-danger { background: var(--danger); color: #fff; }
-        .btn-main { grid-column: span 2; height: 48px; font-size: 15px; }
 
-        /* MODAL / KARAKTERLER MENÜSÜ */
         .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 20; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
         .modal-content { background: var(--panel); border: 2px solid var(--border); border-radius: 16px; padding: 15px; width: 100%; max-width: 320px; max-height: 80vh; overflow-y: auto; }
         .modal-title { font-size: 18px; color: var(--warning); font-weight: bold; text-align: center; margin-bottom: 12px; }
         .lvl-row { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.3); padding: 8px 12px; border-radius: 8px; margin-bottom: 6px; font-size: 13px; }
 
-        /* OYUN EKRANI */
         #game-screen { display: none; background: #0c0d1f; flex-direction: column; justify-content: space-between; padding: 0; }
         .top-bar { width: 100%; height: 45px; background: var(--panel); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; border-bottom: 2px solid #22264f; }
         .room-info { font-size: 12px; font-weight: bold; color: var(--warning); }
@@ -68,7 +68,6 @@
         #arena-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 5px; position: relative; }
         canvas { background: #111329; border: 3px solid #2d325a; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.6); max-width: 96vw; max-height: 52vh; }
 
-        /* KONTROLLER */
         .controls { height: 160px; background: var(--panel); border-top: 2px solid #22264f; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
         .dpad { position: relative; width: 135px; height: 135px; }
         .dbtn { position: absolute; width: 46px; height: 46px; background: #252952; border: 2px solid #41488c; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 24px; color: white; }
@@ -91,15 +90,15 @@
 </head>
 <body>
 
-    <!-- YÜKLEME EKRANI -->
     <div id="loading-screen">
         <div class="spinner"></div>
         <div style="font-weight: bold; color: var(--accent);">Karakterler Yükleniyor...</div>
     </div>
 
-    <!-- LOBİ EKRANI -->
     <div id="lobby-screen" class="screen" style="display:none;">
         <h1>THE PETS: BOMBER</h1>
+        
+        <div class="gold-display">🪙 ALTIN: <span id="gold-amount">0</span></div>
 
         <div class="input-group">
             <input type="text" id="username" placeholder="Takma Adın" maxlength="10">
@@ -107,45 +106,40 @@
         </div>
 
         <div class="char-grid" id="char-card-container"></div>
+        
+        <button id="upgrade-btn" class="btn-upgrade" onclick="upgradeCharacter()">YÜKSELT (100 🪙)</button>
+
         <div id="char-desc">Yükleniyor...</div>
 
         <div class="btn-group">
             <button class="btn-blue" onclick="createCustomRoom()">ODA KUR</button>
             <button class="btn-purple" onclick="joinCustomRoom()">ODAYA KATIL</button>
         </div>
-
         <div class="btn-triple">
             <button class="btn-orange" onclick="startMatchmaking(2)">RASTGELE 2</button>
             <button class="btn-orange" onclick="startMatchmaking(3)">RASTGELE 3</button>
             <button class="btn-orange" onclick="startMatchmaking(4)">RASTGELE 4</button>
         </div>
-
-        <!-- HESAP AYARLARI VE LİSTELER BUTONLARI -->
         <div class="btn-group" style="width:100%; max-width:320px; margin-bottom:8px;">
             <button class="btn-blue" style="background: #34495e; color: #fff; height:40px; font-size:11px;" onclick="toggleModal(true)">🏅 LVELLER</button>
             <button class="btn-danger" style="height:40px; font-size:11px; background:#c0392b;" onclick="resetAccount()">🔄 HESABI SIFIRLA</button>
         </div>
-
         <button id="btn-start" style="display:none; background:var(--success); margin-top: 8px;" onclick="startGame()" disabled>OYUNCU BEKLENİYOR... ⏳</button>
-
         <div id="lobby-list" style="display:none;">
             <div id="lobby-status-title" style="font-weight:bold; color:var(--accent); margin-bottom:6px;">Odadaki Oyuncular:</div>
             <div id="players-container"></div>
         </div>
     </div>
 
-    <!-- OYUN EKRANI -->
     <div id="game-screen" class="screen">
         <div class="top-bar">
             <div class="room-info" id="hud-room-id">ODA: ----</div>
             <div id="game-status" style="font-size:12px; font-weight:bold; color:#fff;">Savaş Başladı!</div>
             <button onclick="leaveGame()" style="width:65px; height:30px; font-size:11px; background:#444; color:#fff; margin:0; box-shadow:none;">ÇIK ⬅</button>
         </div>
-
         <div id="arena-container">
             <canvas id="bomber-canvas"></canvas>
         </div>
-
         <div class="controls">
             <div class="dpad">
                 <div class="dbtn d-up" data-dir="up">▲</div>
@@ -153,7 +147,6 @@
                 <div class="dbtn d-left" data-dir="left">◀</div>
                 <div class="dbtn d-right" data-dir="right">▶</div>
             </div>
-
             <div class="action-btns">
                 <button class="act-btn btn-ability" id="action-skill" onclick="useSpecialAbility()">🌟</button>
                 <button class="act-btn btn-bomb" onclick="placeBomb()">💣</button>
@@ -161,7 +154,6 @@
         </div>
     </div>
 
-    <!-- KARAKTERLER LEVEL GÖSTERGELİ MODAL -->
     <div id="char-modal" class="modal" onclick="toggleModal(false)">
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-title">KARAKTER SEVİYELERİ</div>
@@ -172,12 +164,9 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, onValue, update, remove, runTransaction, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { getDatabase, ref, set, onValue, get, update, remove, runTransaction, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-        const firebaseConfig = {
-            databaseURL: "https://tomoyunu-5cd2f-default-rtdb.europe-west1.firebasedatabase.app"
-        };
-
+        const firebaseConfig = { databaseURL: "https://tomoyunu-5cd2f-default-rtdb.europe-west1.firebasedatabase.app" };
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
 
@@ -193,68 +182,39 @@
             blook:   { name: "BLOOK",   img: "blook.webp",  desc: "Yere görünmez buz tuzağı kurar. Basan 2 sn donar!", emoji: "❄️" }
         };
 
-        let myId = null;
-        let myRoom = null;
-        let currentRoomData = null;
-        let selectedCharacter = "squeak";
-        let canvas, ctx;
-        let mapSize = 13; 
-        let tileSize = 24;
-        let imgCache = {};
-        let isMovingCooldown = false;
-        let charLevels = {};
-        let roomListenerRef = null;
+        let myId = null; let myRoom = null; let currentRoomData = null; let selectedCharacter = "squeak";
+        let canvas, ctx; let mapSize = 13; let tileSize = 24; let imgCache = {}; let isMovingCooldown = false;
+        let charLevels = {}; let myGold = 0; let roomListenerRef = null; let botInterval = null;
 
-        function loadLevels() {
+        // VERİLERİ VE ALTINLARI YÜKLE
+        function loadPlayerData() {
             Object.keys(PETS_DATA).forEach(key => {
-                let lvl = localStorage.getItem(`bomber_lvl_${key}`);
-                charLevels[key] = lvl ? parseInt(lvl) : 1;
+                let lvl = localStorage.getItem(`bomber_lvl_${key}`); charLevels[key] = lvl ? parseInt(lvl) : 1;
             });
+            let gold = localStorage.getItem("bomber_gold");
+            myGold = gold ? parseInt(gold) : 0;
+            document.getElementById('gold-amount').innerText = myGold;
         }
-        loadLevels();
+        loadPlayerData();
 
         const savedName = localStorage.getItem("bomber_username");
-        if (savedName) {
-            document.getElementById('username').value = savedName;
-        }
+        if (savedName) { document.getElementById('username').value = savedName; }
 
-        // GELİŞTİRİLMİŞ KÖKTEN HESAP VE VERİTABANI SIFIRLAMA FONKSİYONU
         window.resetAccount = async function() {
-            if(confirm("Hesabını sıfırlamak ve çıkış yapmak istediğine emin misin? Tüm verilerin ve odaların temizlenecektir!")) {
-                
-                // 1. Canlı dinlemeleri durdur ve Firebase odasındaki oyuncuyu sil
-                if(myRoom && myId) {
-                    if(roomListenerRef) off(roomListenerRef);
-                    try {
-                        await remove(ref(db, `bomber_rooms/${myRoom}/players/${myId}`));
-                    } catch(e) { console.log("Oda silme es geçildi"); }
-                }
-
-                // 2. Tarayıcının tüm hafızasını kökten uçur
-                localStorage.clear();
-                sessionStorage.clear();
-
-                alert("Hesap ve Firebase kalıntıları tamamen temizlendi! Yeni karakterinle başlayabilirsin.");
-                location.reload();
+            if(confirm("Hesabını sıfırlamak ve çıkış yapmak istediğine emin misin? Tüm verilerin temizlenecektir!")) {
+                if(roomListenerRef) off(roomListenerRef);
+                if(myRoom && myId) { try { await remove(ref(db, `bomber_rooms/${myRoom}/players/${myId}`)); } catch(e) {} }
+                localStorage.clear(); sessionStorage.clear(); alert("Hesap kökten temizlendi!"); location.reload();
             }
         };
 
         function preloadImages() {
             const promises = Object.keys(PETS_DATA).map(key => {
                 return new Promise((resolve) => {
-                    let img = new Image();
-                    img.src = PETS_DATA[key].img;
-                    img.onload = () => {
-                        imgCache[key] = img;
-                        resolve();
-                    };
-                    img.onerror = () => {
-                        console.error("Yerel görsel yüklenemedi: " + PETS_DATA[key].img);
-                        resolve();
-                    };
+                    let img = new Image(); img.src = PETS_DATA[key].img;
+                    img.onload = () => { imgCache[key] = img; resolve(); }; img.onerror = () => { resolve(); };
                 });
             });
-
             Promise.all(promises).then(() => {
                 document.getElementById('loading-screen').style.display = 'none';
                 document.getElementById('lobby-screen').style.display = 'flex';
@@ -263,29 +223,55 @@
         }
 
         function buildCharGrid() {
-            let grid = document.getElementById('char-card-container');
-            grid.innerHTML = "";
+            let grid = document.getElementById('char-card-container'); grid.innerHTML = "";
             Object.keys(PETS_DATA).forEach(key => {
-                let p = PETS_DATA[key];
-                let card = document.createElement('div');
+                let p = PETS_DATA[key]; let card = document.createElement('div');
                 card.className = `char-card ${key === selectedCharacter ? 'selected' : ''}`;
-                card.onclick = () => selectChar(key);
+                card.onclick = () => { selectedCharacter = key; buildCharGrid(); };
                 card.innerHTML = `<div class="lvl-badge">Lvl ${charLevels[key]}</div><img src="${p.img}"><span>${p.name}</span>`;
                 grid.appendChild(card);
             });
+            
             document.getElementById('char-desc').innerText = PETS_DATA[selectedCharacter].name + " (Lvl " + charLevels[selectedCharacter] + "): " + PETS_DATA[selectedCharacter].desc;
+            
+            // Yükseltme butonu durumunu kontrol et
+            let upgradeBtn = document.getElementById('upgrade-btn');
+            upgradeBtn.style.display = "block";
+            let currentLvl = charLevels[selectedCharacter];
+            
+            if(currentLvl >= 5) {
+                upgradeBtn.disabled = true;
+                upgradeBtn.innerText = "MAKSİMUM SEVİYE (LVL 5)";
+            } else if(myGold < 100) {
+                upgradeBtn.disabled = true;
+                upgradeBtn.innerText = "YETERSİZ ALTIN (100 🪙)";
+            } else {
+                upgradeBtn.disabled = false;
+                upgradeBtn.innerText = `YÜKSELT (100 🪙)`;
+            }
         }
-
-        function selectChar(key) { selectedCharacter = key; buildCharGrid(); }
-        
         preloadImages();
 
+        // ALTIN HARCAYARAK KARAKTER YÜKSELTME FONKSİYONU
+        window.upgradeCharacter = function() {
+            let currentLvl = charLevels[selectedCharacter];
+            if(myGold >= 100 && currentLvl < 5) {
+                myGold -= 100;
+                charLevels[selectedCharacter] = currentLvl + 1;
+                
+                localStorage.setItem("bomber_gold", myGold);
+                localStorage.setItem(`bomber_lvl_${selectedCharacter}`, charLevels[selectedCharacter]);
+                
+                document.getElementById('gold-amount').innerText = myGold;
+                alert(`🏅 ${PETS_DATA[selectedCharacter].name} başarıyla Seviye ${currentLvl + 1} oldu!`);
+                buildCharGrid();
+            }
+        };
+
         window.toggleModal = function(show) {
-            let modal = document.getElementById('char-modal');
-            modal.style.display = show ? 'flex' : 'none';
+            let modal = document.getElementById('char-modal'); modal.style.display = show ? 'flex' : 'none';
             if(show) {
-                let container = document.getElementById('modal-list-container');
-                container.innerHTML = "";
+                let container = document.getElementById('modal-list-container'); container.innerHTML = "";
                 Object.keys(PETS_DATA).forEach(k => {
                     container.innerHTML += `<div class="lvl-row"><span><b>${PETS_DATA[k].name}</b></span><span>Seviye: ${charLevels[k]}/5</span></div>`;
                 });
@@ -293,55 +279,42 @@
         };
 
         function generateRandomRoomCode() {
-            let code = "";
-            for(let i=0; i<9; i++) { code += Math.floor(Math.random() * 10).toString(); }
-            return code;
+            let code = ""; for(let i=0; i<9; i++) { code += Math.floor(Math.random() * 10).toString(); } return code;
         }
 
         window.createCustomRoom = function() {
-            let name = document.getElementById('username').value.trim();
-            if(!name) { alert("Lütfen takma adını gir!"); return; }
-            localStorage.setItem("bomber_username", name);
-            let rCode = generateRandomRoomCode();
-            enterRoom(name, rCode, 4);
+            let name = document.getElementById('username').value.trim(); if(!name) { alert("Lütfen takma adını gir!"); return; }
+            localStorage.setItem("bomber_username", name); enterRoom(name, generateRandomRoomCode(), 4);
         };
 
         window.joinCustomRoom = function() {
-            let name = document.getElementById('username').value.trim();
-            let room = document.getElementById('room-id').value.trim();
-            if(!name || room.length !== 9) { alert("Lütfen adını ve 9 haneli oda kodunu gir!"); return; }
-            localStorage.setItem("bomber_username", name);
-            enterRoom(name, room, 4);
+            let name = document.getElementById('username').value.trim(); let room = document.getElementById('room-id').value.trim();
+            if(!name || room.length !== 9) { alert("Lütfen adını ve oda kodunu kontrol et!"); return; }
+            localStorage.setItem("bomber_username", name); enterRoom(name, room, 4);
         };
 
         window.startMatchmaking = function(targetPlayers) {
-            let name = document.getElementById('username').value.trim();
-            if(!name) { alert("Lütfen takma adını gir!"); return; }
+            let name = document.getElementById('username').value.trim(); if(!name) { alert("Lütfen takma adını gir!"); return; }
             localStorage.setItem("bomber_username", name);
-            
             document.getElementById('lobby-status-title').innerText = `Rastgele ${targetPlayers}'li Eşleşme Aranıyor...`;
             document.getElementById('lobby-list').style.display = 'block';
 
-            onValue(ref(db, 'bomber_rooms'), (snapshot) => {
-                let rooms = snapshot.val();
-                let foundRoom = null;
+            get(ref(db, 'bomber_rooms')).then((snapshot) => {
+                let rooms = snapshot.val(); let foundRoom = null;
                 if(rooms) {
                     for(let rId in rooms) {
                         if(rooms[rId].status === "waiting" && rooms[rId].targetCount === targetPlayers) {
-                            let pCount = Object.keys(rooms[rId].players || {}).length;
-                            if(pCount < targetPlayers) { foundRoom = rId; break; }
+                            let pCount = Object.keys(rooms[rId].players || {}).length; if(pCount < targetPlayers) { foundRoom = rId; break; }
                         }
                     }
                 }
                 if(foundRoom) { enterRoom(name, foundRoom, targetPlayers); } 
-                else { let newCode = generateRandomRoomCode(); enterRoom(name, newCode, targetPlayers); }
-            }, { onlyOnce: true });
+                else { enterRoom(name, generateRandomRoomCode(), targetPlayers); }
+            });
         };
 
         function enterRoom(name, roomCode, maxPlayers) {
-            myId = "p_" + Math.random().toString(36).substr(2, 4);
-            myRoom = roomCode;
-
+            if(roomListenerRef) off(roomListenerRef); myId = "p_" + Math.random().toString(36).substr(2, 4); myRoom = roomCode;
             document.getElementById('lobby-status-title').innerHTML = `ODA KODU: <span style="color:#f1c40f; font-size:20px; letter-spacing:2px; font-weight:900;">${myRoom}</span>`;
             document.getElementById('lobby-list').style.display = 'block';
 
@@ -349,29 +322,17 @@
             runTransaction(roomListenerRef, (currentData) => {
                 if (currentData === null) {
                     return {
-                        status: "waiting",
-                        targetCount: maxPlayers,
-                        map: generateMap(),
-                        players: {
-                            [myId]: { name: name, character: selectedCharacter, x: 1, y: 1, isAlive: true, abilityReady: true, lastBombId: "" }
-                        }
+                        status: "waiting", targetCount: maxPlayers, map: generateMap(),
+                        players: { [myId]: { name: name, character: selectedCharacter, x: 1, y: 1, isAlive: true, abilityReady: true, lastBombId: "", isBot: false } }
                     };
                 } else {
                     if(currentData.status === "playing") return;
-                    let pKeys = Object.keys(currentData.players || {});
-                    if(pKeys.length >= currentData.targetCount) return;
-
-                    let spawnPoints = [{x:1,y:1}, {x:11,y:1}, {x:1,y:11}, {x:11,y:11}];
-                    let pos = spawnPoints[pKeys.length] || {x:1,y:1};
-
-                    currentData.players[myId] = {
-                        name: name, character: selectedCharacter, x: pos.x, y: pos.y, isAlive: true, abilityReady: true, lastBombId: ""
-                    };
+                    let pKeys = Object.keys(currentData.players || {}); if(pKeys.length >= currentData.targetCount) return;
+                    let spawnPoints = [{x:1,y:1}, {x:11,y:1}, {x:1,y:11}, {x:11,y:11}]; let pos = spawnPoints[pKeys.length] || {x:1,y:1};
+                    currentData.players[myId] = { name: name, character: selectedCharacter, x: pos.x, y: pos.y, isAlive: true, abilityReady: true, lastBombId: "", isBot: false };
                     return currentData;
                 }
-            }).then(() => {
-                listenRoom();
-            });
+            }).then(() => { listenRoom(); });
         }
 
         function generateMap() {
@@ -389,162 +350,146 @@
 
         function listenRoom() {
             onValue(roomListenerRef, (snapshot) => {
-                const data = snapshot.val();
-                if(!data) return;
-                currentRoomData = data;
+                const data = snapshot.val(); if(!data) return; currentRoomData = data;
 
                 if(data.status === "waiting") {
-                    let pKeys = Object.keys(data.players || {});
-                    let container = document.getElementById('players-container');
-                    container.innerHTML = "";
+                    let pKeys = Object.keys(data.players || {}); let container = document.getElementById('players-container'); container.innerHTML = "";
                     pKeys.forEach((k, idx) => {
-                        let p = data.players[k];
-                        container.innerHTML += `<div class="lobby-p"><span>${idx+1}. ${p.name} (${p.character.toUpperCase()})</span><b>HAZIR</b></div>`;
+                        let p = data.players[k]; container.innerHTML += `<div class="lobby-p"><span>${idx+1}. ${p.name} ${p.isBot?'[BOT]':''}</span><b>HAZIR</b></div>`;
                     });
-
-                    document.getElementById('lobby-status-title').innerHTML = `ODA KODU: <span style="color:#f1c40f; font-size:22px; letter-spacing:2px; font-weight:900;">${myRoom}</span><br><span style="font-size:12px; color:#ccc;">Odadaki Oyuncular (${pKeys.length}/${data.targetCount}):</span>`;
-
-                    let btnStart = document.getElementById('btn-start');
-                    if(pKeys[0] === myId) {
-                        btnStart.style.display = 'block';
-                    }
-
+                    let btnStart = document.getElementById('btn-start'); if(pKeys[0] === myId) { btnStart.style.display = 'block'; }
                     if(pKeys.length === data.targetCount) {
-                        btnStart.disabled = false;
-                        btnStart.style.background = "var(--success)";
-                        btnStart.innerText = "OYUNU BAŞLAT 🚀";
-                        
-                        if(pKeys[0] === myId) {
-                            startGame();
-                        }
+                        btnStart.disabled = false; btnStart.style.background = "var(--success)"; btnStart.innerText = "OYUNU BAŞLAT 🚀";
+                        if(pKeys[0] === myId) { startGame(); }
                     } else {
-                        btnStart.disabled = true;
-                        btnStart.style.background = "#555";
-                        btnStart.innerText = `OYUNCU BEKLENİYOR (${pKeys.length}/${data.targetCount})... ⏳`;
+                        btnStart.disabled = true; btnStart.style.background = "#555"; btnStart.innerText = `OYUNCU BEKLENİYOR (${pKeys.length}/${data.targetCount})... ⏳`;
                     }
-
                 } else if(data.status === "playing") {
-                    if(document.getElementById('lobby-screen').style.display !== 'none') {
-                        setupGameCanvas();
-                    }
+                    if(document.getElementById('lobby-screen').style.display !== 'none') { setupGameCanvas(); startBotAI(); }
                     drawArena();
                 }
             });
         }
 
         window.startGame = function() {
-            let pKeys = Object.keys(currentRoomData.players || {});
-            if(pKeys.length < currentRoomData.targetCount) {
-                alert("Oda henüz dolmadı, tek başına oyun başlatamazsın!");
-                return;
-            }
+            if(!currentRoomData) return; let pKeys = Object.keys(currentRoomData.players || {}); if(pKeys.length < currentRoomData.targetCount) return;
             update(roomListenerRef, { status: "playing" });
         };
 
         function setupGameCanvas() {
-            document.getElementById('lobby-screen').style.display = 'none';
-            document.getElementById('game-screen').style.display = 'flex';
+            document.getElementById('lobby-screen').style.display = 'none'; document.getElementById('game-screen').style.display = 'flex';
             document.getElementById('hud-room-id').innerText = "ODA: " + myRoom;
+            canvas = document.getElementById('bomber-canvas'); ctx = canvas.getContext('2d');
+            let renderSize = Math.min(window.innerWidth * 0.96, window.innerHeight * 0.52, 340); canvas.width = renderSize; canvas.height = renderSize;
+            tileSize = renderSize / mapSize; setupTouchControls();
+        }
 
-            canvas = document.getElementById('bomber-canvas');
-            ctx = canvas.getContext('2d');
+        function startBotAI() {
+            if(botInterval) clearInterval(botInterval);
+            botInterval = setInterval(() => {
+                if(!currentRoomData || currentRoomData.status !== "playing") return;
+                let pKeys = Object.keys(currentRoomData.players || {});
+                if(pKeys[0] !== myId) return;
 
-            let renderSize = Math.min(window.innerWidth * 0.96, window.innerHeight * 0.52, 340);
-            canvas.width = renderSize;
-            canvas.height = renderSize;
-            tileSize = renderSize / mapSize;
+                pKeys.forEach(pId => {
+                    let bot = currentRoomData.players[pId];
+                    if(!bot.isBot || !bot.isAlive || bot.isFrozen) return;
 
-            setupTouchControls();
+                    let dangerZones = getDangerZones();
+                    let inDanger = dangerZones.some(z => z.x === bot.x && z.y === bot.y);
+
+                    if(inDanger) {
+                        let safeMoves = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}].map(d => ({x:bot.x+d.x, y:bot.y+d.y}))
+                            .filter(m => currentRoomData.map[m.y * mapSize + m.x] === 0)
+                            .filter(m => !dangerZones.some(z => z.x === m.x && z.y === z.y));
+                        
+                        if(safeMoves.length > 0) {
+                            let nextMove = safeMoves[Math.floor(Math.random() * safeMoves.length)];
+                            update(ref(db, `bomber_rooms/${myRoom}/players/${pId}`), { x: nextMove.x, y: nextMove.y });
+                        }
+                    } else {
+                        let directions = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
+                        let nearWallOrPlayer = false;
+
+                        directions.forEach(d => {
+                            let tx = bot.x + d.x, ty = bot.y + d.y;
+                            if(currentRoomData.map[ty * mapSize + tx] === 2) nearWallOrPlayer = true;
+                            for(let id in currentRoomData.players) {
+                                if(id !== pId && currentRoomData.players[id].isAlive && currentRoomData.players[id].x === tx && currentRoomData.players[id].y === ty) {
+                                    nearWallOrPlayer = true;
+                                }
+                            }
+                        });
+
+                        if(nearWallOrPlayer && Math.random() > 0.4) {
+                            let bid = "b_bot_" + Math.random().toString(36).substr(2,3);
+                            let bombData = { x: bot.x, y: bot.y, owner: pId, range: 2, isMega: false };
+                            update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), bombData);
+                            setTimeout(() => { explodeBomb(bid); }, 2500);
+                        } else {
+                            let validMoves = directions.map(d => ({x:bot.x+d.x, y:bot.y+d.y}))
+                                .filter(m => currentRoomData.map[m.y * mapSize + m.x] === 0);
+                            if(validMoves.length > 0) {
+                                let move = validMoves[Math.floor(Math.random() * validMoves.length)];
+                                update(ref(db, `bomber_rooms/${myRoom}/players/${pId}`), { x: move.x, y: move.y });
+                            }
+                        }
+                    }
+                });
+            }, 350);
+        }
+
+        function getDangerZones() {
+            let zones = []; let bombs = currentRoomData.bombs || {};
+            for(let bid in bombs) {
+                let b = bombs[bid]; zones.push({x:b.x, y:b.y});
+                let dirs = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
+                dirs.forEach(d => {
+                    for(let i=1; i<=2; i++) {
+                        let cx = b.x + d.x*i, cy = b.y + d.y*i;
+                        if(currentRoomData.map[cy*mapSize + cx] === 1) break;
+                        zones.push({x:cx, y:cy});
+                    }
+                });
+            }
+            return zones;
         }
 
         function drawArena() {
-            if(!ctx || !currentRoomData) return;
-            ctx.clearRect(0,0,canvas.width, canvas.height);
-
-            let map = currentRoomData.map;
-            let players = currentRoomData.players;
-            let bombs = currentRoomData.bombs || {};
-            let explosions = currentRoomData.explosions || {};
-            let traps = currentRoomData.traps || {};
+            if(!ctx || !currentRoomData) return; ctx.clearRect(0,0,canvas.width, canvas.height);
+            let map = currentRoomData.map; let players = currentRoomData.players;
+            let bombs = currentRoomData.bombs || {}; let explosions = currentRoomData.explosions || {};
 
             for(let y=0; y<mapSize; y++) {
                 for(let x=0; x<mapSize; x++) {
                     let tile = map[y * mapSize + x];
-                    if(tile === 1) { 
-                        let grad = ctx.createLinearGradient(x*tileSize, y*tileSize, (x+1)*tileSize, (y+1)*tileSize);
-                        grad.addColorStop(0, "#41488c"); grad.addColorStop(1, "#191c3a");
-                        ctx.fillStyle = grad; ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize);
-                    }
-                    else if(tile === 2) { 
-                        let grad = ctx.createLinearGradient(x*tileSize, y*tileSize, (x+1)*tileSize, (y+1)*tileSize);
-                        grad.addColorStop(0, "#d63031"); grad.addColorStop(1, "#630000");
-                        ctx.fillStyle = grad; ctx.fillRect(x*tileSize, y*tileSize, tileSize-1, tileSize-1);
-                    }
-                }
-            }
-
-            for(let tid in traps) {
-                if(traps[tid].owner === myId) {
-                    ctx.fillStyle = "rgba(0, 210, 255, 0.4)";
-                    ctx.fillRect(traps[tid].x*tileSize + 4, traps[tid].y*tileSize + 4, tileSize - 8, tileSize - 8);
+                    if(tile === 1) { ctx.fillStyle = "#191c3a"; ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize); } 
+                    else if(tile === 2) { ctx.fillStyle = "#630000"; ctx.fillRect(x*tileSize, y*tileSize, tileSize-1, tileSize-1); }
                 }
             }
 
             for(let bid in bombs) {
-                let b = bombs[bid];
-                let radius = b.isMega ? tileSize*0.55 : tileSize*0.4;
-                ctx.fillStyle = b.isMega ? "#8e44ad" : "#111"; 
-                ctx.beginPath();
-                ctx.arc((b.x+0.5)*tileSize, (b.y+0.5)*tileSize, radius, 0, Math.PI*2); ctx.fill();
+                let b = bombs[bid]; ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc((b.x+0.5)*tileSize, (b.y+0.5)*tileSize, tileSize*0.4, 0, Math.PI*2); ctx.fill();
             }
 
             for(let eid in explosions) {
-                let exp = explosions[eid];
-                if(exp.cells) {
-                    ctx.fillStyle = "rgba(255, 71, 87, 0.85)";
-                    exp.cells.forEach(c => { ctx.fillRect(c.x*tileSize, c.y*tileSize, tileSize, tileSize); });
+                let exp = explosions[eid]; if(exp.cells) {
+                    ctx.fillStyle = "rgba(255, 71, 87, 0.85)"; exp.cells.forEach(c => { ctx.fillRect(c.x*tileSize, c.y*tileSize, tileSize, tileSize); });
                 }
             }
 
             for(let pid in players) {
-                let p = players[pid];
-                if(!p.isAlive) continue;
-
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.42, 0, Math.PI*2);
-                ctx.clip();
-
-                if(imgCache[p.character]) {
-                    ctx.drawImage(imgCache[p.character], p.x*tileSize, p.y*tileSize, tileSize, tileSize);
-                } else {
-                    ctx.fillStyle = (pid === myId) ? "#00d2ff" : "#ff4757"; ctx.fill();
-                }
+                let p = players[pid]; if(!p.isAlive) continue;
+                ctx.save(); ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.42, 0, Math.PI*2); ctx.clip();
+                if(imgCache[p.character]) { ctx.drawImage(imgCache[p.character], p.x*tileSize, p.y*tileSize, tileSize, tileSize); } 
+                else { ctx.fillStyle = (pid === myId) ? "#00d2ff" : "#ff4757"; ctx.fill(); }
                 ctx.restore();
 
-                ctx.strokeStyle = (pid === myId) ? "#00d2ff" : "#ff4757";
-                ctx.lineWidth = 2.5;
+                ctx.strokeStyle = p.isBot ? "#e67e22" : ((pid === myId) ? "#00d2ff" : "#ff4757"); ctx.lineWidth = 2.5;
                 ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.42, 0, Math.PI*2); ctx.stroke();
 
                 ctx.fillStyle = "#fff"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center";
-                ctx.fillText(p.name, (p.x+0.5)*tileSize, (p.y+0.18)*tileSize);
-
-                if(p.shieldActive) {
-                    ctx.strokeStyle = "#9b59b6"; ctx.lineWidth = 3;
-                    ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.48, 0, Math.PI*2); ctx.stroke();
-                }
-                if(p.squeakActive) {
-                    ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 3;
-                    ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.48, 0, Math.PI*2); ctx.stroke();
-                }
-                if(p.ghostActive) {
-                    ctx.strokeStyle = "rgba(255,255,255,0.7)"; ctx.lineWidth = 2;
-                    ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.48, 0, Math.PI*2); ctx.stroke();
-                }
-                if(p.isFrozen) {
-                    ctx.fillStyle = "rgba(0, 210, 255, 0.4)";
-                    ctx.fillRect(p.x*tileSize, p.y*tileSize, tileSize, tileSize);
-                }
+                ctx.fillText(p.isBot ? `🤖 ${p.name}` : p.name, (p.x+0.5)*tileSize, (p.y+0.18)*tileSize);
             }
         }
 
@@ -553,202 +498,46 @@
                 btn.ontouchstart = (e) => { e.preventDefault(); handleMove(btn.getAttribute('data-dir')); };
                 btn.onmousedown = () => { handleMove(btn.getAttribute('data-dir')); };
             });
-            let myChar = currentRoomData.players[myId].character;
-            document.getElementById('action-skill').innerText = PETS_DATA[myChar].emoji;
+            let myChar = currentRoomData.players[myId].character; document.getElementById('action-skill').innerText = PETS_DATA[myChar].emoji;
         }
 
         function handleMove(dir) {
             if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
-            let me = currentRoomData.players[myId];
-
-            if(me.isFrozen) return;
-            if(!me.squeakActive && isMovingCooldown) return;
-
-            let tx = me.x, ty = me.y;
-            if(dir === 'up') ty--; if(dir === 'down') ty++;
-            if(dir === 'left') tx--; if(dir === 'right') tx++;
-
-            let cellValue = currentRoomData.map[ty * mapSize + tx];
-            let canPass = (cellValue === 0) || (me.ghostActive && cellValue === 2);
-
-            if(canPass) {
-                let hasBomb = false;
-                let bombs = currentRoomData.bombs || {};
-                for(let id in bombs) { if(bombs[id].x === tx && bombs[id].y === ty) hasBomb = true; }
-
-                if(!hasBomb) {
-                    if(!me.squeakActive) {
-                        isMovingCooldown = true;
-                        setTimeout(() => { isMovingCooldown = false; }, 150);
-                    }
-                    
-                    let traps = currentRoomData.traps || {};
-                    for(let tid in traps) {
-                        if(traps[tid].x === tx && traps[tid].y === ty) {
-                            update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isFrozen: true });
-                            remove(ref(db, `bomber_rooms/${myRoom}/traps/${tid}`));
-                            setTimeout(() => {
-                                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isFrozen: false });
-                            }, 2000);
-                        }
-                    }
-
-                    update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { x: tx, y: ty });
-                }
+            let me = currentRoomData.players[myId]; if(me.isFrozen) return; if(isMovingCooldown) return;
+            let tx = me.x, ty = me.y; if(dir === 'up') ty--; if(dir === 'down') ty++; if(dir === 'left') tx--; if(dir === 'right') tx++;
+            if(currentRoomData.map[ty * mapSize + tx] === 0) {
+                isMovingCooldown = true; setTimeout(() => { isMovingCooldown = false; }, 150);
+                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { x: tx, y: ty });
             }
         }
 
         window.placeBomb = function() {
             if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
-            let me = currentRoomData.players[myId];
-
-            let bid = "b_" + Math.random().toString(36).substr(2, 4);
-            let bX = me.x, bY = me.y;
-
-            let bombs = currentRoomData.bombs || {};
-            for(let id in bombs) { if(bombs[id].x === bX && bombs[id].y === bY) return; }
-
-            let isMegaBomb = me.mooseyMegaActive || false;
-            let bombRange = isMegaBomb ? 6 : 2;
-
-            let bombData = { x: bX, y: bY, owner: myId, range: bombRange, isMega: isMegaBomb };
-
-            if(isMegaBomb) {
-                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { mooseyMegaActive: false });
-            }
-
-            if(me.character === 'dot') {
-                update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), bombData);
-                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { lastBombId: bid });
-                return;
-            }
-
-            update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), bombData);
-            update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { lastBombId: bid });
-
+            let me = currentRoomData.players[myId]; let bid = "b_" + Math.random().toString(36).substr(2, 4);
+            update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), { x: me.x, y: me.y, owner: myId, range: 2, isMega: false });
             setTimeout(() => { explodeBomb(bid); }, 3000);
         };
 
-        window.useSpecialAbility = function() {
-            if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
-            let me = currentRoomData.players[myId];
-            if(!me.abilityReady) return;
-
-            if(me.character === 'squeak') {
-                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { squeakActive: true });
-                useUpAbility();
-                setTimeout(() => { update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { squeakActive: false }); }, 5000);
-            }
-            else if(me.character === 'flip' && me.lastBombId) {
-                explodeBomb(me.lastBombId, true); useUpAbility();
-            }
-            else if(me.character === 'dot' && me.lastBombId) {
-                explodeBomb(me.lastBombId);
-                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { lastBombId: "" });
-            }
-            else if(me.character === 'gus') {
-                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { shieldActive: true });
-                useUpAbility();
-                setTimeout(() => { update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { shieldActive: false }); }, 2000);
-            }
-            else if(me.character === 'yeyet') {
-                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { ghostActive: true });
-                useUpAbility();
-                setTimeout(() => { update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { ghostActive: false }); }, 3000);
-            }
-            else if(me.character === 'moosey') {
-                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { mooseyMegaActive: true });
-                useUpAbility();
-            }
-            else if(me.character === 'blook') {
-                let trId = "t_" + Math.random().toString(36).substr(2, 4);
-                set(ref(db, `bomber_rooms/${myRoom}/traps/${trId}`), { x: me.x, y: me.y, owner: myId });
-                useUpAbility();
-            }
-            else if(me.character === 'sugar') {
-                let directions = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
-                let actionDone = false;
-                directions.forEach(d => {
-                    let kX = me.x + d.x, kY = me.y + d.y;
-                    if(currentRoomData.map[kY * mapSize + kX] === 2 && !actionDone) {
-                        let nextX = kX + d.x, nextY = kY + d.y;
-                        if(currentRoomData.map[nextY * mapSize + nextX] === 0) {
-                            let updatedMap = [...currentRoomData.map];
-                            updatedMap[kY * mapSize + kX] = 0;
-                            updatedMap[nextY * mapSize + nextX] = 2;
-                            update(ref(db, `bomber_rooms/${myRoom}`), { map: updatedMap });
-                            actionDone = true;
-                            useUpAbility();
-                        }
-                    }
-                });
-            }
-            else if(me.character === 'blinky') {
-                let bombs = currentRoomData.bombs || {};
-                let directions = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}];
-                let kicked = false;
-                for(let bid in bombs) {
-                    directions.forEach(d => {
-                        if(bombs[bid].x === me.x + d.x && bombs[bid].y === me.y + d.y && !kicked) {
-                            let finalX = bombs[bid].x;
-                            let finalY = bombs[bid].y;
-                            
-                            while(true) {
-                                let nextX = finalX + d.x;
-                                let nextY = finalY + d.y;
-                                if(currentRoomData.map[nextY * mapSize + nextX] === 0) {
-                                    finalX = nextX;
-                                    finalY = nextY;
-                                } else { break; }
-                            }
-                            
-                            update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), { x: finalX, y: finalY });
-                            kicked = true;
-                            useUpAbility();
-                        }
-                    });
-                }
-            }
-        };
-
-        function useUpAbility() {
-            update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { abilityReady: false });
-            document.getElementById('action-skill').disabled = true;
-        }
-
-        function explodeBomb(bid, isFlipBuff = false) {
+        function explodeBomb(bid) {
             if(!currentRoomData || !currentRoomData.bombs || !currentRoomData.bombs[bid]) return;
-            let b = currentRoomData.bombs[bid];
-            let range = b.range || 2;
-            if(isFlipBuff) range += 1;
-
-            let cells = [{ x: b.x, y: b.y }];
-            let directions = [{x:0,y:-1}, {x:0,y:1}, {x:-1,y:0}, {x:1,y:0}];
+            let b = currentRoomData.bombs[bid]; let range = b.range || 2;
+            let cells = [{ x: b.x, y: b.y }]; let directions = [{x:0,y:-1}, {x:0,y:1}, {x:-1,y:0}, {x:1,y:0}];
             let updatedMap = [...currentRoomData.map];
 
             directions.forEach(d => {
                 for(let i=1; i<=range; i++) {
-                    let cx = b.x + (d.x * i);
-                    let cy = b.y + (d.y * i);
-                    let idx = cy * mapSize + cx;
-
-                    if(updatedMap[idx] === 1) break;
-                    cells.push({ x: cx, y: cy });
+                    let cx = b.x + d.x*i; let cy = b.y + d.y*i; let idx = cy * mapSize + cx;
+                    if(updatedMap[idx] === 1) break; cells.push({ x: cx, y: cy });
                     if(updatedMap[idx] === 2) { updatedMap[idx] = 0; break; }
                 }
             });
 
-            remove(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`));
-            update(ref(db, `bomber_rooms/${myRoom}`), { map: updatedMap });
-
-            let eid = "e_" + Math.random().toString(36).substr(2, 4);
-            set(ref(db, `bomber_rooms/${myRoom}/explosions/${eid}`), { cells: cells });
+            remove(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`)); update(ref(db, `bomber_rooms/${myRoom}`), { map: updatedMap });
+            let eid = "e_" + Math.random().toString(36).substr(2, 4); set(ref(db, `bomber_rooms/${myRoom}/explosions/${eid}`), { cells: cells });
 
             let players = currentRoomData.players;
             for(let pid in players) {
-                let p = players[pid];
-                if(!p.isAlive || p.shieldActive) continue;
-
+                let p = players[pid]; if(!p.isAlive) continue;
                 cells.forEach(c => {
                     if(p.x === c.x && p.y === c.y) {
                         update(ref(db, `bomber_rooms/${myRoom}/players/${pid}`), { isAlive: false });
@@ -756,56 +545,47 @@
                     }
                 });
             }
-
-            setTimeout(() => {
-                remove(ref(db, `bomber_rooms/${myRoom}/explosions/${eid}`));
-                checkVictoryConditions();
-            }, 500);
+            setTimeout(() => { remove(ref(db, `bomber_rooms/${myRoom}/explosions/${eid}`)); checkVictoryConditions(); }, 500);
         }
 
-        function triggerLevelUp() {
-            let currentLvl = charLevels[selectedCharacter] || 1;
-            if(currentLvl < 5) {
-                let newLvl = currentLvl + 1;
-                charLevels[selectedCharacter] = newLvl;
-                localStorage.setItem(`bomber_lvl_${selectedCharacter}`, newLvl);
-                alert(`Tebrikler Kazandın! Oynadığın karakter ${PETS_DATA[selectedCharacter].name} Seviye Atladı: Lvl ${newLvl}! 🏅`);
-            } else {
-                alert(`Tebrikler Kazandın! ${PETS_DATA[selectedCharacter].name} zaten maksimum seviyede (Lvl 5)!`);
-            }
-            loadLevels();
-            buildCharGrid();
-        }
-
+        // MAÇ KAZANMA VE ALTIN EKLEME ALGORİTMASI
         function checkVictoryConditions() {
             if(!currentRoomData || currentRoomData.status !== "playing") return;
-            let players = currentRoomData.players;
-            let alivePlayers = [];
-            let winnerId = null;
-
+            let players = currentRoomData.players; let alivePlayers = []; let winnerId = null;
+            
             for(let pid in players) { 
-                if(players[pid].isAlive) {
-                    alivePlayers.push(players[pid].name);
+                if(players[pid].isAlive) { 
+                    alivePlayers.push(players[pid]); 
                     winnerId = pid;
                 } 
             }
-
+            
             if(alivePlayers.length === 1) {
-                alert(`KAZANAN: ${alivePlayers[0]} 🏆`); 
+                let winnerName = alivePlayers[0].name;
+                
+                // Eğer kazanan bizsek +10 Altın ekle
                 if(winnerId === myId) {
-                    triggerLevelUp();
+                    myGold += 10;
+                    localStorage.setItem("bomber_gold", myGold);
+                    alert(`🏆 TEBRİKLER KAZANDINIZ! 🏆\n🎁 +10 Altın Kazandınız!`);
+                } else {
+                    alert(`MAÇ BİTTİ!\nKazanan: ${winnerName} 🏆`);
                 }
                 leaveGame();
             } else if(alivePlayers.length === 0) {
-                alert("HERKES PATLADI! BERABERE 💥"); 
-                leaveGame();
+                alert("HERKES PATLADI! BERABERE 💥"); leaveGame();
             }
         }
 
-        window.leaveGame = function() {
-            if(myRoom && myId) { 
+        window.leaveGame = async function() {
+            if(botInterval) clearInterval(botInterval);
+            if(myRoom && myId) {
                 if(roomListenerRef) off(roomListenerRef);
-                remove(ref(db, `bomber_rooms/${myRoom}/players/${myId}`)); 
+                if(currentRoomData && currentRoomData.status === "playing") {
+                    try { await update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isBot: true, name: "ZorluBot" }); } catch(e){}
+                } else {
+                    try { await remove(ref(db, `bomber_rooms/${myRoom}/players/${myId}`)); } catch(e){}
+                }
             }
             location.reload();
         };
