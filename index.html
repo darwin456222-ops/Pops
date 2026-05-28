@@ -275,6 +275,7 @@
             localStorage.setItem("bomber_username", name); enterRoom(name, room, 4);
         };
 
+        // --- GÜNCELLENMİŞ RASTGELE EŞLEŞME (HAYALET ODALARI SİLME) ---
         window.startMatchmaking = function(targetPlayers) {
             let name = document.getElementById('username').value.trim(); if(!name) { alert("Lütfen takma adını gir!"); return; }
             localStorage.setItem("bomber_username", name);
@@ -285,8 +286,17 @@
                 let rooms = snapshot.val(); let foundRoom = null;
                 if(rooms) {
                     for(let rId in rooms) {
-                        if(rooms[rId].status === "waiting" && rooms[rId].targetCount === targetPlayers) {
-                            let pCount = Object.keys(rooms[rId].players || {}).length; if(pCount < targetPlayers) { foundRoom = rId; break; }
+                        let room = rooms[rId];
+                        let pKeys = Object.keys(room.players || {});
+
+                        // Eğer odada hiç gerçek oyuncu kalmadıysa veritabanından tamamen temizle
+                        if (pKeys.length === 0) {
+                            remove(ref(db, `bomber_rooms/${rId}`));
+                            continue; 
+                        }
+
+                        if(room.status === "waiting" && room.targetCount === targetPlayers) {
+                            if(pKeys.length < targetPlayers) { foundRoom = rId; break; }
                         }
                     }
                 }
@@ -309,7 +319,7 @@
             runTransaction(roomListenerRef, (currentData) => {
                 if (currentData === null) {
                     return {
-                        status: "waiting", targetCount: maxPlayers, map: generateMap(),
+                        status: "waiting", targetCount: maxPlayers, map: generateMap(), createdAt: Date.now(),
                         players: { [myId]: { name: name, character: selectedCharacter, x: 1, y: 1, isAlive: true, abilityReady: true, lastBombId: "", isBot: false } }
                     };
                 } else {
@@ -545,6 +555,7 @@
                 let winnerName = alivePlayers[0].name;
                 if(winnerId === myId) {
                     myGold += 10; localStorage.setItem("bomber_gold", myGold);
+                    document.getElementById('gold-amount').innerText = myGold;
                     alert(`🏆 TEBRİKLER KAZANDINIZ! 🏆\n🎁 +10 Altın Kazandınız!`);
                 } else { alert(`MAÇ BİTTİ!\nKazanan: ${winnerName} 🏆`); }
                 leaveGame();
