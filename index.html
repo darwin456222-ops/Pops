@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>The Pets: Bomber Online (Final Edition)</title>
+    <title>The Pets: Bomber Online (Music Edition)</title>
     <style>
         :root {
             --bg: #090a14;
@@ -64,7 +64,7 @@
         .room-info { font-size: 12px; font-weight: bold; color: var(--warning); }
 
         #arena-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 5px; position: relative; }
-        canvas { background: #111329; border: 3px solid #2d325a; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.6); max-width: 96vw; max-height: 52vh; }
+        canvas { background: #1a1c38; border: 3px solid #3b427a; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.6); max-width: 96vw; max-height: 52vh; }
 
         .controls { height: 160px; background: var(--panel); border-top: 2px solid #22264f; display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
         .dpad { position: relative; width: 135px; height: 135px; }
@@ -182,6 +182,7 @@
         let myId = null; let myRoom = null; let currentRoomData = null; let selectedCharacter = "squeak";
         let canvas, ctx; let mapSize = 13; let tileSize = 24; let imgCache = {}; let isMovingCooldown = false;
         let charLevels = {}; let myGold = 0; let roomListenerRef = null; let botInterval = null;
+        let audioCtx = null; let musicInterval = null;
 
         function loadPlayerData() {
             Object.keys(PETS_DATA).forEach(key => {
@@ -200,7 +201,7 @@
             if(confirm("Hesabını sıfırlamak ve çıkış yapmak istediğine emin misin?")) {
                 if(roomListenerRef) off(roomListenerRef);
                 if(myRoom && myId) { try { await remove(ref(db, `bomber_rooms/${myRoom}/players/${myId}`)); } catch(e) {} }
-                localStorage.clear(); sessionStorage.clear(); location.reload();
+                localStorage.clear(); sessionStorage.clear(); stopMusic(); location.reload();
             }
         };
 
@@ -275,7 +276,6 @@
             localStorage.setItem("bomber_username", name); enterRoom(name, room, 4);
         };
 
-        // --- GÜNCELLENMİŞ RASTGELE EŞLEŞME (HAYALET ODALARI SİLME) ---
         window.startMatchmaking = function(targetPlayers) {
             let name = document.getElementById('username').value.trim(); if(!name) { alert("Lütfen takma adını gir!"); return; }
             localStorage.setItem("bomber_username", name);
@@ -289,7 +289,6 @@
                         let room = rooms[rId];
                         let pKeys = Object.keys(room.players || {});
 
-                        // Eğer odada hiç gerçek oyuncu kalmadıysa veritabanından tamamen temizle
                         if (pKeys.length === 0) {
                             remove(ref(db, `bomber_rooms/${rId}`));
                             continue; 
@@ -353,7 +352,6 @@
             onValue(roomListenerRef, (snapshot) => {
                 const data = snapshot.val(); if(!data) return; currentRoomData = data;
 
-                // --- 🛡️ KLON GÜVENLİK KONTROLÜ (AYNI İSİMDEKİLERİ ATMA) ---
                 if (data.players) {
                     let pKeys = Object.keys(data.players); let nameCounts = {};
                     pKeys.forEach(k => {
@@ -379,7 +377,7 @@
                         btnStart.disabled = true; btnStart.style.background = "#555"; btnStart.innerText = `OYUNCU BEKLENİYOR (${pKeys.length}/${data.targetCount})... ⏳`;
                     }
                 } else if(data.status === "playing") {
-                    if(document.getElementById('lobby-screen').style.display !== 'none') { setupGameCanvas(); startBotAI(); }
+                    if(document.getElementById('lobby-screen').style.display !== 'none') { setupGameCanvas(); startBotAI(); startMusic(); }
                     drawArena();
                 }
             });
@@ -396,6 +394,39 @@
             canvas = document.getElementById('bomber-canvas'); ctx = canvas.getContext('2d');
             let renderSize = Math.min(window.innerWidth * 0.96, window.innerHeight * 0.52, 340); canvas.width = renderSize; canvas.height = renderSize;
             tileSize = renderSize / mapSize; setupTouchControls();
+        }
+
+        function startMusic() {
+            try {
+                if(!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+                if(audioCtx.state === 'suspended') { audioCtx.resume(); }
+                
+                const notes = [110, 130, 146, 165, 110, 130, 165, 146, 110, 110, 196, 165, 146, 130, 146, 165];
+                let step = 0;
+
+                musicInterval = setInterval(() => {
+                    if(!audioCtx || currentRoomData?.status !== "playing") return;
+                    let osc = audioCtx.createOscillator();
+                    let gain = audioCtx.createGain();
+                    
+                    osc.type = 'triangle'; 
+                    osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
+                    
+                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
+                    
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + 0.2);
+                    step++;
+                }, 200);
+            } catch(e) { console.log("Müzik hatası:", e); }
+        }
+
+        function stopMusic() {
+            if(musicInterval) clearInterval(musicInterval);
+            if(audioCtx) { audioCtx.close().catch(()=>{}); audioCtx = null; }
         }
 
         function startBotAI() {
@@ -465,18 +496,25 @@
             for(let y=0; y<mapSize; y++) {
                 for(let x=0; x<mapSize; x++) {
                     let tile = map[y * mapSize + x];
-                    if(tile === 1) { ctx.fillStyle = "#191c3a"; ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize); } 
-                    else if(tile === 2) { ctx.fillStyle = "#630000"; ctx.fillRect(x*tileSize, y*tileSize, tileSize-1, tileSize-1); }
+                    if(tile === 1) { ctx.fillStyle = "#25294a"; ctx.fillRect(x*tileSize, y*tileSize, tileSize, tileSize); } 
+                    else if(tile === 2) { ctx.fillStyle = "#8e44ad"; ctx.fillRect(x*tileSize, y*tileSize, tileSize-1, tileSize-1); }
                 }
             }
+
             for(let bid in bombs) {
-                let b = bombs[bid]; ctx.fillStyle = "#111"; ctx.beginPath(); ctx.arc((b.x+0.5)*tileSize, (b.y+0.5)*tileSize, tileSize*0.4, 0, Math.PI*2); ctx.fill();
+                let b = bombs[bid];
+                ctx.fillStyle = "#ff3838"; ctx.beginPath(); ctx.arc((b.x+0.5)*tileSize, (b.y+0.5)*tileSize, tileSize*0.38, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "#ff7675"; ctx.beginPath(); ctx.arc((b.x+0.42)*tileSize, (b.y+0.42)*tileSize, tileSize*0.12, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo((b.x+0.5)*tileSize, (b.y+0.2)*tileSize); ctx.lineTo((b.x+0.62)*tileSize, (b.y+0.1)*tileSize); ctx.stroke();
+                ctx.fillStyle = "#e67e22"; ctx.beginPath(); ctx.arc((b.x+0.62)*tileSize, (b.y+0.1)*tileSize, 3, 0, Math.PI*2); ctx.fill();
             }
+
             for(let eid in explosions) {
                 let exp = explosions[eid]; if(exp.cells) {
                     ctx.fillStyle = "rgba(255, 71, 87, 0.85)"; exp.cells.forEach(c => { ctx.fillRect(c.x*tileSize, c.y*tileSize, tileSize, tileSize); });
                 }
             }
+
             for(let pid in players) {
                 let p = players[pid]; if(!p.isAlive) continue;
                 ctx.save(); ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.42, 0, Math.PI*2); ctx.clip();
@@ -563,6 +601,7 @@
         }
 
         window.leaveGame = async function() {
+            stopMusic();
             if(botInterval) clearInterval(botInterval);
             if(myRoom && myId) {
                 if(roomListenerRef) off(roomListenerRef);
