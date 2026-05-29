@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>The Pets: Bomber Online (Perfect Edition)</title>
+    <title>The Pets: Bomber Online</title>
     <style>
         :root {
             --bg: #090a14;
@@ -82,7 +82,7 @@
         .btn-ability { background: #9b59b6; border: 2px solid #8e44ad; position: relative; }
         .btn-ability:disabled { background: #34495e; border-color: #2c3e50; opacity: 0.5; }
 
-        #lobby-list { font-size: 13px; color: #fff; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; width: 100%; max-width: 320px; border: 1px solid #2d325a; }
+        #lobby-list { font-size: 13px; color: #fff; margin-top: 10px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; width: 100%; max-width: 320px; border: 1px solid #3b427a; }
         .lobby-p { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; padding-bottom: 5px; border-bottom: 1px dashed #3b427a; }
     </style>
 </head>
@@ -101,17 +101,15 @@
 
         <div class="input-group">
             <input type="text" id="username" placeholder="Takma Adın" maxlength="10">
-            <input type="text" id="room-id" placeholder="Oda Kodu Girin (Katılmak İçin)" maxlength="9">
+            <input type="text" id="room-id" placeholder="Oda Kodu Girin" maxlength="9">
         </div>
 
         <div class="char-grid" id="char-card-container"></div>
         <button id="upgrade-btn" class="btn-upgrade" onclick="upgradeCharacter()">YÜKSELT (100 🪙)</button>
         <div id="char-desc">Yükleniyor...</div>
 
-        <div class="btn-group">
-            <button class="btn-blue" onclick="createCustomRoom()">ODA KUR</button>
-            <button class="btn-purple" onclick="joinCustomRoom()">ODAYA KATIL</button>
-        </div>
+        <button class="btn-purple" style="width:100%; max-width:320px; margin-bottom:8px;" onclick="joinCustomRoom()">ODAYA KATIL / ODA KUR</button>
+        
         <div class="btn-triple">
             <button class="btn-orange" onclick="startMatchmaking(2)">RASTGELE 2</button>
             <button class="btn-orange" onclick="startMatchmaking(3)">RASTGELE 3</button>
@@ -266,15 +264,14 @@
             let code = ""; for(let i=0; i<9; i++) { code += Math.floor(Math.random() * 10).toString(); } return code;
         }
 
-        window.createCustomRoom = function() {
-            let name = document.getElementById('username').value.trim(); if(!name) { alert("Lütfen takma adını gir!"); return; }
-            localStorage.setItem("bomber_username", name); enterRoom(name, generateRandomRoomCode(), 4);
-        };
-
         window.joinCustomRoom = function() {
             let name = document.getElementById('username').value.trim(); let room = document.getElementById('room-id').value.trim();
-            if(!name || room.length !== 9) { alert("Lütfen adını ve oda kodunu kontrol et!"); return; }
-            localStorage.setItem("bomber_username", name); enterRoom(name, room, 4);
+            if(!name) { alert("Lütfen takma adını gir!"); return; }
+            localStorage.setItem("bomber_username", name);
+            
+            // Eğer kod yazılmadıysa otomatik oda kurar, yazıldıysa o odaya bağlanır.
+            let targetRoom = room.length === 9 ? room : generateRandomRoomCode();
+            enterRoom(name, targetRoom, 4);
         };
 
         window.startMatchmaking = function(targetPlayers) {
@@ -466,24 +463,18 @@
             return zones;
         }
 
-        // --- ⛔ BOMBALARDAN GEÇEMEME VE GEÇİŞ KONTROLÜ ---
         function isCellPassable(x, y, player) {
             if(x < 0 || x >= mapSize || y < 0 || y >= mapSize) return false;
             let tile = currentRoomData.map[y * mapSize + x];
-            
-            // Sabit Duvar engeli
             if(tile === 1) return false;
-            // Mor Tuğla engeli (Eğer Hayalet Modu aktifse geçebilir)
             if(tile === 2 && !player.isGhost) return false;
 
-            // BOMBALARIN ÜZERİNDEN GEÇEMEME KURALI
             let bombs = currentRoomData.bombs || {};
             for(let bid in bombs) {
                 let b = bombs[bid];
                 if(b.x === x && b.y === y) {
-                    // Oyuncu halihazırda bombanın tam üstünde duruyorsa sıkışmasın diye çıkışına izin verilir
                     if(player.x === x && player.y === y) return true;
-                    return false; // Dışarıdan bombanın üstüne basılamaz!
+                    return false;
                 }
             }
             return true;
@@ -503,7 +494,6 @@
                 }
             }
 
-            // Buz Tuzaklarını Çiz (Sadece sahibi görebilir veya basılınca görünür)
             for(let tid in traps) {
                 let t = traps[tid];
                 if(t.owner === myId) {
@@ -512,7 +502,6 @@
                 }
             }
 
-            // Parlak Kırmızı Bombalar
             for(let bid in bombs) {
                 let b = bombs[bid];
                 ctx.fillStyle = b.isMega ? "#ff0066" : "#ff3838"; 
@@ -535,11 +524,10 @@
                 else { ctx.fillStyle = (pid === myId) ? "#00d2ff" : "#ff4757"; ctx.fill(); }
                 ctx.restore();
 
-                // Güç Efekt Halkaları
                 let strokeColor = p.isBot ? "#e67e22" : ((pid === myId) ? "#00d2ff" : "#ff4757");
-                if(p.isGod) strokeColor = "#f1c40f"; // Ölümsüzlük sarı parlar
-                if(p.isGhost) strokeColor = "rgba(255,255,255,0.6)"; // Hayalet beyaz saydam
-                if(p.isFrozen) strokeColor = "#00ffff"; // Donmuş turkuaz
+                if(p.isGod) strokeColor = "#f1c40f"; 
+                if(p.isGhost) strokeColor = "rgba(255,255,255,0.6)"; 
+                if(p.isFrozen) strokeColor = "#00ffff"; 
 
                 ctx.strokeStyle = strokeColor; ctx.lineWidth = 2.5;
                 ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.42, 0, Math.PI*2); ctx.stroke();
@@ -561,13 +549,13 @@
             if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
             let me = currentRoomData.players[myId]; if(me.isFrozen || isMovingCooldown) return;
             
-            lastDirection = dir; // Karakter gücü yönü için yönü kaydet
+            lastDirection = dir; 
             let tx = me.x, ty = me.y; 
             if(dir === 'up') ty--; if(dir === 'down') ty++; if(dir === 'left') tx--; if(dir === 'right') tx++;
             
             if(isCellPassable(tx, ty, me)) {
                 isMovingCooldown = true; 
-                let speed = me.isSpeedy ? 40 : 150; // SQUEAK hızı
+                let speed = me.isSpeedy ? 40 : 150; 
                 setTimeout(() => { isMovingCooldown = false; }, speed);
                 
                 update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { x: tx, y: ty });
@@ -584,7 +572,7 @@
                     update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isFrozen: true });
                     setTimeout(() => {
                         update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isFrozen: false });
-                    }, 2000); // 2 saniye donma
+                    }, 2000); 
                 }
             }
         }
@@ -596,7 +584,6 @@
             let bid = "b_" + Math.random().toString(36).substr(2, 4);
             myActiveBombId = bid;
 
-            // MOOSEY Gücü Kontrolü
             let isMegaActive = me.isMegaReady || false;
             let bombRange = isMegaActive ? 6 : 2;
 
@@ -604,13 +591,11 @@
 
             update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), { x: me.x, y: me.y, owner: myId, range: bombRange, isMega: isMegaActive });
             
-            // DOT karakteri uzaktan kumanda eder, otomatik patlamaz
             if(me.character !== "dot") {
                 setTimeout(() => { explodeBomb(bid); }, 3000);
             }
         };
 
-        // --- 🌟 KAREKTER GÜÇLERİNİ ÇALIŞTIRMA FONKSİYONU ---
         window.useCharacterAbility = function() {
             if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
             let me = currentRoomData.players[myId]; if(!me.abilityReady || me.isFrozen) return;
@@ -629,14 +614,12 @@
                 setTimeout(() => { update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isGod: false }); }, 2000);
             }
             else if(char === "blinky") {
-                // Önündeki bombayı fırlat
                 let tx = me.x, ty = me.y;
                 if(lastDirection === 'up') ty--; if(lastDirection === 'down') ty++; if(lastDirection === 'left') tx--; if(lastDirection === 'right') tx++;
                 let bombs = currentRoomData.bombs || {};
                 for(let bid in bombs) {
                     if(bombs[bid].x === tx && bombs[bid].y === ty) {
                         let fx = tx, fy = ty;
-                        // Duvara veya engele çarpana kadar ilerlet
                         while(currentRoomData.map[(fy + (lastDirection==='down'?1:lastDirection==='up'?-1:0)) * mapSize + (fx + (lastDirection==='right'?1:lastDirection==='left'?-1:0))] === 0) {
                             if(lastDirection === 'up') fy--; if(lastDirection === 'down') fy++; if(lastDirection === 'left') fx--; if(lastDirection === 'right') fx++;
                         }
@@ -671,7 +654,6 @@
                 if(myActiveBombId && currentRoomData.bombs && currentRoomData.bombs[myActiveBombId]) {
                     explodeBomb(myActiveBombId);
                 }
-                // Dot yeteneği patlatınca bekleme dolmadan tekrar açılabilir
                 setTimeout(() => { btn.disabled = false; update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { abilityReady: true }); }, 1000);
                 return;
             }
@@ -687,7 +669,6 @@
                 update(ref(db, `bomber_rooms/${myRoom}/traps/${tid}`), { x: me.x, y: me.y, owner: myId });
             }
 
-            // Standart Yetenek Bekleme Süresi (Cooldown)
             setTimeout(() => {
                 btn.disabled = false;
                 update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { abilityReady: true });
@@ -713,7 +694,7 @@
 
             let players = currentRoomData.players;
             for(let pid in players) {
-                let p = players[pid]; if(!p.isAlive || p.isGod) continue; // GUS Gücü (isGod) hasar almaz
+                let p = players[pid]; if(!p.isAlive || p.isGod) continue; 
                 cells.forEach(c => {
                     if(p.x === c.x && p.y === c.y) {
                         update(ref(db, `bomber_rooms/${myRoom}/players/${pid}`), { isAlive: false });
