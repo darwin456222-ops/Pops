@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>The Pets: Bomber Online (Music Edition)</title>
+    <title>The Pets: Bomber Online (Perfect Edition)</title>
     <style>
         :root {
             --bg: #090a14;
@@ -145,7 +145,7 @@
                 <div class="dbtn d-right" data-dir="right">▶</div>
             </div>
             <div class="action-btns">
-                <button class="act-btn btn-ability" id="action-skill">🌟</button>
+                <button class="act-btn btn-ability" id="action-skill" onclick="useCharacterAbility()">🌟</button>
                 <button class="act-btn btn-bomb" onclick="placeBomb()">💣</button>
             </div>
         </div>
@@ -183,6 +183,7 @@
         let canvas, ctx; let mapSize = 13; let tileSize = 24; let imgCache = {}; let isMovingCooldown = false;
         let charLevels = {}; let myGold = 0; let roomListenerRef = null; let botInterval = null;
         let audioCtx = null; let musicInterval = null;
+        let lastDirection = "down"; let myActiveBombId = null;
 
         function loadPlayerData() {
             Object.keys(PETS_DATA).forEach(key => {
@@ -288,12 +289,7 @@
                     for(let rId in rooms) {
                         let room = rooms[rId];
                         let pKeys = Object.keys(room.players || {});
-
-                        if (pKeys.length === 0) {
-                            remove(ref(db, `bomber_rooms/${rId}`));
-                            continue; 
-                        }
-
+                        if (pKeys.length === 0) { remove(ref(db, `bomber_rooms/${rId}`)); continue; }
                         if(room.status === "waiting" && room.targetCount === targetPlayers) {
                             if(pKeys.length < targetPlayers) { foundRoom = rId; break; }
                         }
@@ -319,7 +315,7 @@
                 if (currentData === null) {
                     return {
                         status: "waiting", targetCount: maxPlayers, map: generateMap(), createdAt: Date.now(),
-                        players: { [myId]: { name: name, character: selectedCharacter, x: 1, y: 1, isAlive: true, abilityReady: true, lastBombId: "", isBot: false } }
+                        players: { [myId]: { name: name, character: selectedCharacter, x: 1, y: 1, isAlive: true, abilityReady: true, isBot: false, isSpeedy: false, isGod: false, isGhost: false, isFrozen: false } }
                     };
                 } else {
                     if(currentData.status === "playing") return;
@@ -329,7 +325,7 @@
                     }
                     let pKeys = Object.keys(currentData.players || {}); if(pKeys.length >= currentData.targetCount) return;
                     let spawnPoints = [{x:1,y:1}, {x:11,y:1}, {x:1,y:11}, {x:11,y:11}]; let pos = spawnPoints[pKeys.length] || {x:1,y:1};
-                    currentData.players[myId] = { name: name, character: selectedCharacter, x: pos.x, y: pos.y, isAlive: true, abilityReady: true, lastBombId: "", isBot: false };
+                    currentData.players[myId] = { name: name, character: selectedCharacter, x: pos.x, y: pos.y, isAlive: true, abilityReady: true, isBot: false, isSpeedy: false, isGod: false, isGhost: false, isFrozen: false };
                     return currentData;
                 }
             }).then(() => { listenRoom(); });
@@ -354,14 +350,9 @@
 
                 if (data.players) {
                     let pKeys = Object.keys(data.players); let nameCounts = {};
-                    pKeys.forEach(k => {
-                        let pName = data.players[k].name; if (pName) { nameCounts[pName] = (nameCounts[pName] || 0) + 1; }
-                    });
+                    pKeys.forEach(k => { let pName = data.players[k].name; if (pName) { nameCounts[pName] = (nameCounts[pName] || 0) + 1; } });
                     let myName = data.players[myId] ? data.players[myId].name : null;
-                    if (myName && nameCounts[myName] > 1) {
-                        alert(`⚠️ Odada zaten "${myName}" isminde bir oyuncu var! Odadan atıldınız.`);
-                        leaveGame(); return;
-                    }
+                    if (myName && nameCounts[myName] > 1) { alert(`⚠️ Odada zaten "${myName}" isminde bir oyuncu var!`); leaveGame(); return; }
                 }
 
                 if(data.status === "waiting") {
@@ -400,26 +391,16 @@
             try {
                 if(!audioCtx) { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
                 if(audioCtx.state === 'suspended') { audioCtx.resume(); }
-                
                 const notes = [110, 130, 146, 165, 110, 130, 165, 146, 110, 110, 196, 165, 146, 130, 146, 165];
                 let step = 0;
-
                 musicInterval = setInterval(() => {
                     if(!audioCtx || currentRoomData?.status !== "playing") return;
-                    let osc = audioCtx.createOscillator();
-                    let gain = audioCtx.createGain();
-                    
-                    osc.type = 'triangle'; 
-                    osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
-                    
-                    gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+                    let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+                    osc.type = 'triangle'; osc.frequency.setValueAtTime(notes[step % notes.length], audioCtx.currentTime);
+                    gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
                     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.18);
-                    
-                    osc.connect(gain);
-                    gain.connect(audioCtx.destination);
-                    osc.start();
-                    osc.stop(audioCtx.currentTime + 0.2);
-                    step++;
+                    osc.connect(gain); gain.connect(audioCtx.destination);
+                    osc.start(); osc.stop(audioCtx.currentTime + 0.2); step++;
                 }, 200);
             } catch(e) { console.log("Müzik hatası:", e); }
         }
@@ -441,7 +422,7 @@
 
                     if(inDanger) {
                         let safeMoves = [{x:0,y:-1},{x:0,y:1},{x:-1,y:0},{x:1,y:0}].map(d => ({x:bot.x+d.x, y:bot.y+d.y}))
-                            .filter(m => currentRoomData.map[m.y * mapSize + m.x] === 0)
+                            .filter(m => isCellPassable(m.x, m.y, bot))
                             .filter(m => !dangerZones.some(z => z.x === m.x && z.y === m.y));
                         if(safeMoves.length > 0) {
                             let nextMove = safeMoves[Math.floor(Math.random() * safeMoves.length)];
@@ -452,17 +433,14 @@
                         directions.forEach(d => {
                             let tx = bot.x + d.x, ty = bot.y + d.y;
                             if(currentRoomData.map[ty * mapSize + tx] === 2) nearWallOrPlayer = true;
-                            for(let id in currentRoomData.players) {
-                                if(id !== pId && currentRoomData.players[id].isAlive && currentRoomData.players[id].x === tx && currentRoomData.players[id].y === ty) { nearWallOrPlayer = true; }
-                            }
                         });
 
-                        if(nearWallOrPlayer && Math.random() > 0.4) {
+                        if(nearWallOrPlayer && Math.random() > 0.5) {
                             let bid = "b_bot_" + Math.random().toString(36).substr(2,3);
                             update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), { x: bot.x, y: bot.y, owner: pId, range: 2, isMega: false });
                             setTimeout(() => { explodeBomb(bid); }, 2500);
                         } else {
-                            let validMoves = directions.map(d => ({x:bot.x+d.x, y:bot.y+d.y})).filter(m => currentRoomData.map[m.y * mapSize + m.x] === 0);
+                            let validMoves = directions.map(d => ({x:bot.x+d.x, y:bot.y+d.y})).filter(m => isCellPassable(m.x, m.y, bot));
                             if(validMoves.length > 0) {
                                 let move = validMoves[Math.floor(Math.random() * validMoves.length)];
                                 update(ref(db, `bomber_rooms/${myRoom}/players/${pId}`), { x: move.x, y: move.y });
@@ -488,10 +466,34 @@
             return zones;
         }
 
+        // --- ⛔ BOMBALARDAN GEÇEMEME VE GEÇİŞ KONTROLÜ ---
+        function isCellPassable(x, y, player) {
+            if(x < 0 || x >= mapSize || y < 0 || y >= mapSize) return false;
+            let tile = currentRoomData.map[y * mapSize + x];
+            
+            // Sabit Duvar engeli
+            if(tile === 1) return false;
+            // Mor Tuğla engeli (Eğer Hayalet Modu aktifse geçebilir)
+            if(tile === 2 && !player.isGhost) return false;
+
+            // BOMBALARIN ÜZERİNDEN GEÇEMEME KURALI
+            let bombs = currentRoomData.bombs || {};
+            for(let bid in bombs) {
+                let b = bombs[bid];
+                if(b.x === x && b.y === y) {
+                    // Oyuncu halihazırda bombanın tam üstünde duruyorsa sıkışmasın diye çıkışına izin verilir
+                    if(player.x === x && player.y === y) return true;
+                    return false; // Dışarıdan bombanın üstüne basılamaz!
+                }
+            }
+            return true;
+        }
+
         function drawArena() {
             if(!ctx || !currentRoomData) return; ctx.clearRect(0,0,canvas.width, canvas.height);
             let map = currentRoomData.map; let players = currentRoomData.players;
             let bombs = currentRoomData.bombs || {}; let explosions = currentRoomData.explosions || {};
+            let traps = currentRoomData.traps || {};
 
             for(let y=0; y<mapSize; y++) {
                 for(let x=0; x<mapSize; x++) {
@@ -501,9 +503,20 @@
                 }
             }
 
+            // Buz Tuzaklarını Çiz (Sadece sahibi görebilir veya basılınca görünür)
+            for(let tid in traps) {
+                let t = traps[tid];
+                if(t.owner === myId) {
+                    ctx.fillStyle = "rgba(0, 210, 255, 0.4)";
+                    ctx.fillRect(t.x*tileSize+4, t.y*tileSize+4, tileSize-8, tileSize-8);
+                }
+            }
+
+            // Parlak Kırmızı Bombalar
             for(let bid in bombs) {
                 let b = bombs[bid];
-                ctx.fillStyle = "#ff3838"; ctx.beginPath(); ctx.arc((b.x+0.5)*tileSize, (b.y+0.5)*tileSize, tileSize*0.38, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = b.isMega ? "#ff0066" : "#ff3838"; 
+                ctx.beginPath(); ctx.arc((b.x+0.5)*tileSize, (b.y+0.5)*tileSize, b.isMega ? tileSize*0.46 : tileSize*0.38, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = "#ff7675"; ctx.beginPath(); ctx.arc((b.x+0.42)*tileSize, (b.y+0.42)*tileSize, tileSize*0.12, 0, Math.PI*2); ctx.fill();
                 ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo((b.x+0.5)*tileSize, (b.y+0.2)*tileSize); ctx.lineTo((b.x+0.62)*tileSize, (b.y+0.1)*tileSize); ctx.stroke();
                 ctx.fillStyle = "#e67e22"; ctx.beginPath(); ctx.arc((b.x+0.62)*tileSize, (b.y+0.1)*tileSize, 3, 0, Math.PI*2); ctx.fill();
@@ -522,7 +535,13 @@
                 else { ctx.fillStyle = (pid === myId) ? "#00d2ff" : "#ff4757"; ctx.fill(); }
                 ctx.restore();
 
-                ctx.strokeStyle = p.isBot ? "#e67e22" : ((pid === myId) ? "#00d2ff" : "#ff4757"); ctx.lineWidth = 2.5;
+                // Güç Efekt Halkaları
+                let strokeColor = p.isBot ? "#e67e22" : ((pid === myId) ? "#00d2ff" : "#ff4757");
+                if(p.isGod) strokeColor = "#f1c40f"; // Ölümsüzlük sarı parlar
+                if(p.isGhost) strokeColor = "rgba(255,255,255,0.6)"; // Hayalet beyaz saydam
+                if(p.isFrozen) strokeColor = "#00ffff"; // Donmuş turkuaz
+
+                ctx.strokeStyle = strokeColor; ctx.lineWidth = 2.5;
                 ctx.beginPath(); ctx.arc((p.x+0.5)*tileSize, (p.y+0.5)*tileSize, tileSize*0.42, 0, Math.PI*2); ctx.stroke();
                 ctx.fillStyle = "#fff"; ctx.font = "bold 8px sans-serif"; ctx.textAlign = "center";
                 ctx.fillText(p.isBot ? `🤖 ${p.name}` : p.name, (p.x+0.5)*tileSize, (p.y+0.18)*tileSize);
@@ -534,24 +553,145 @@
                 btn.ontouchstart = (e) => { e.preventDefault(); handleMove(btn.getAttribute('data-dir')); };
                 btn.onmousedown = () => { handleMove(btn.getAttribute('data-dir')); };
             });
-            let myChar = currentRoomData.players[myId].character; document.getElementById('action-skill').innerText = PETS_DATA[myChar].emoji;
+            let myChar = currentRoomData.players[myId].character;
+            document.getElementById('action-skill').innerText = PETS_DATA[myChar].emoji;
         }
 
         function handleMove(dir) {
             if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
             let me = currentRoomData.players[myId]; if(me.isFrozen || isMovingCooldown) return;
-            let tx = me.x, ty = me.y; if(dir === 'up') ty--; if(dir === 'down') ty++; if(dir === 'left') tx--; if(dir === 'right') tx++;
-            if(currentRoomData.map[ty * mapSize + tx] === 0) {
-                isMovingCooldown = true; setTimeout(() => { isMovingCooldown = false; }, 150);
+            
+            lastDirection = dir; // Karakter gücü yönü için yönü kaydet
+            let tx = me.x, ty = me.y; 
+            if(dir === 'up') ty--; if(dir === 'down') ty++; if(dir === 'left') tx--; if(dir === 'right') tx++;
+            
+            if(isCellPassable(tx, ty, me)) {
+                isMovingCooldown = true; 
+                let speed = me.isSpeedy ? 40 : 150; // SQUEAK hızı
+                setTimeout(() => { isMovingCooldown = false; }, speed);
+                
                 update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { x: tx, y: ty });
+                checkTraps(tx, ty);
+            }
+        }
+
+        function checkTraps(x, y) {
+            let traps = currentRoomData.traps || {};
+            for(let tid in traps) {
+                let t = traps[tid];
+                if(t.x === x && t.y === y) {
+                    remove(ref(db, `bomber_rooms/${myRoom}/traps/${tid}`));
+                    update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isFrozen: true });
+                    setTimeout(() => {
+                        update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isFrozen: false });
+                    }, 2000); // 2 saniye donma
+                }
             }
         }
 
         window.placeBomb = function() {
             if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
-            let me = currentRoomData.players[myId]; let bid = "b_" + Math.random().toString(36).substr(2, 4);
-            update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), { x: me.x, y: me.y, owner: myId, range: 2, isMega: false });
-            setTimeout(() => { explodeBomb(bid); }, 3000);
+            let me = currentRoomData.players[myId]; if(me.isFrozen) return;
+
+            let bid = "b_" + Math.random().toString(36).substr(2, 4);
+            myActiveBombId = bid;
+
+            // MOOSEY Gücü Kontrolü
+            let isMegaActive = me.isMegaReady || false;
+            let bombRange = isMegaActive ? 6 : 2;
+
+            if(isMegaActive) update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isMegaReady: false });
+
+            update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), { x: me.x, y: me.y, owner: myId, range: bombRange, isMega: isMegaActive });
+            
+            // DOT karakteri uzaktan kumanda eder, otomatik patlamaz
+            if(me.character !== "dot") {
+                setTimeout(() => { explodeBomb(bid); }, 3000);
+            }
+        };
+
+        // --- 🌟 KAREKTER GÜÇLERİNİ ÇALIŞTIRMA FONKSİYONU ---
+        window.useCharacterAbility = function() {
+            if(!currentRoomData || !currentRoomData.players[myId].isAlive) return;
+            let me = currentRoomData.players[myId]; if(!me.abilityReady || me.isFrozen) return;
+
+            let char = me.character;
+            let btn = document.getElementById('action-skill');
+            btn.disabled = true;
+            update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { abilityReady: false });
+
+            if(char === "squeak") {
+                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isSpeedy: true });
+                setTimeout(() => { update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isSpeedy: false }); }, 5000);
+            } 
+            else if(char === "gus") {
+                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isGod: true });
+                setTimeout(() => { update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isGod: false }); }, 2000);
+            }
+            else if(char === "blinky") {
+                // Önündeki bombayı fırlat
+                let tx = me.x, ty = me.y;
+                if(lastDirection === 'up') ty--; if(lastDirection === 'down') ty++; if(lastDirection === 'left') tx--; if(lastDirection === 'right') tx++;
+                let bombs = currentRoomData.bombs || {};
+                for(let bid in bombs) {
+                    if(bombs[bid].x === tx && bombs[bid].y === ty) {
+                        let fx = tx, fy = ty;
+                        // Duvara veya engele çarpana kadar ilerlet
+                        while(currentRoomData.map[(fy + (lastDirection==='down'?1:lastDirection==='up'?-1:0)) * mapSize + (fx + (lastDirection==='right'?1:lastDirection==='left'?-1:0))] === 0) {
+                            if(lastDirection === 'up') fy--; if(lastDirection === 'down') fy++; if(lastDirection === 'left') fx--; if(lastDirection === 'right') fx++;
+                        }
+                        update(ref(db, `bomber_rooms/${myRoom}/bombs/${bid}`), { x: fx, y: fy });
+                        break;
+                    }
+                }
+            }
+            else if(char === "flip") {
+                if(myActiveBombId && currentRoomData.bombs && currentRoomData.bombs[myActiveBombId]) {
+                    let b = currentRoomData.bombs[myActiveBombId];
+                    update(ref(db, `bomber_rooms/${myRoom}/bombs/${myActiveBombId}`), { range: (b.range || 2) + 1 }).then(() => {
+                        explodeBomb(myActiveBombId);
+                    });
+                }
+            }
+            else if(char === "sugar") {
+                let tx = me.x, ty = me.y;
+                if(lastDirection === 'up') ty--; if(lastDirection === 'down') ty++; if(lastDirection === 'left') tx--; if(lastDirection === 'right') tx++;
+                let targetIdx = ty * mapSize + tx;
+                if(currentRoomData.map[targetIdx] === 2) {
+                    let nx = tx, ny = ty;
+                    if(lastDirection === 'up') ny--; if(lastDirection === 'down') ny++; if(lastDirection === 'left') nx--; if(lastDirection === 'right') nx++;
+                    if(currentRoomData.map[ny * mapSize + nx] === 0) {
+                        let newMap = [...currentRoomData.map];
+                        newMap[targetIdx] = 0; newMap[ny * mapSize + nx] = 2;
+                        update(ref(db, `bomber_rooms/${myRoom}`), { map: newMap });
+                    }
+                }
+            }
+            else if(char === "dot") {
+                if(myActiveBombId && currentRoomData.bombs && currentRoomData.bombs[myActiveBombId]) {
+                    explodeBomb(myActiveBombId);
+                }
+                // Dot yeteneği patlatınca bekleme dolmadan tekrar açılabilir
+                setTimeout(() => { btn.disabled = false; update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { abilityReady: true }); }, 1000);
+                return;
+            }
+            else if(char === "yeyet") {
+                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isGhost: true });
+                setTimeout(() => { update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isGhost: false }); }, 3000);
+            }
+            else if(char === "moosey") {
+                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { isMegaReady: true });
+            }
+            else if(char === "blook") {
+                let tid = "t_" + Math.random().toString(36).substr(2,4);
+                update(ref(db, `bomber_rooms/${myRoom}/traps/${tid}`), { x: me.x, y: me.y, owner: myId });
+            }
+
+            // Standart Yetenek Bekleme Süresi (Cooldown)
+            setTimeout(() => {
+                btn.disabled = false;
+                update(ref(db, `bomber_rooms/${myRoom}/players/${myId}`), { abilityReady: true });
+            }, 7000);
         };
 
         function explodeBomb(bid) {
@@ -573,7 +713,7 @@
 
             let players = currentRoomData.players;
             for(let pid in players) {
-                let p = players[pid]; if(!p.isAlive) continue;
+                let p = players[pid]; if(!p.isAlive || p.isGod) continue; // GUS Gücü (isGod) hasar almaz
                 cells.forEach(c => {
                     if(p.x === c.x && p.y === c.y) {
                         update(ref(db, `bomber_rooms/${myRoom}/players/${pid}`), { isAlive: false });
